@@ -20,7 +20,7 @@ type User struct {
 	IsActive    bool      `gorm:"default:true" json:"is_active"`
 	IsAdmin     bool      `gorm:"default:false" json:"is_admin"`
 	IsVerified  bool      `gorm:"default:false" json:"is_verified"`
-	GoogleID    string    `gorm:"column:google_id;uniqueIndex;size:100" json:"-"`
+	GoogleID    *string   `gorm:"column:google_id;uniqueIndex;size:100" json:"-"`
 	LastLoginAt *time.Time `json:"last_login_at"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`

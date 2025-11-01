@@ -1,5 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import ProcessingLoader from '../ui/ProcessingLoader'
+import ModernSkeleton from '../ui/ModernSkeleton'
 
 const AuthSkeleton = ({ type = 'login' }) => {
   const renderLoginSkeleton = () => (
@@ -7,60 +9,47 @@ const AuthSkeleton = ({ type = 'login' }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full max-w-md"
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           {/* Header Skeleton */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto animate-pulse"></div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+            >
+              <ModernSkeleton.Avatar size="md" className="mx-auto mb-4" />
+            </motion.div>
+            <ModernSkeleton width="w-3/4" height="h-8" className="mx-auto mb-2 rounded-lg" />
+            <ModernSkeleton width="w-1/2" height="h-4" className="mx-auto rounded" />
           </div>
 
           {/* Form Skeleton */}
           <div className="space-y-6">
-            {/* Email Field */}
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
-              </div>
-              <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
-            </div>
-
-            {/* Login Button */}
-            <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
-              </div>
-            </div>
-
-            {/* Google Button */}
-            <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-
-            {/* Sign Up Link */}
-            <div className="text-center">
-              <div className="h-4 bg-gray-200 rounded w-48 mx-auto animate-pulse"></div>
-            </div>
+            {[1, 2, 3, 4].map((i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 + i * 0.1, duration: 0.3 }}
+              >
+                <ModernSkeleton width="w-1/4" height="h-4" className="mb-2 rounded" />
+                <ModernSkeleton width="w-full" height="h-12" className="rounded-lg" />
+              </motion.div>
+            ))}
           </div>
+          
+          {/* Button Skeleton */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.3 }}
+            className="mt-6"
+          >
+            <ModernSkeleton width="w-full" height="h-12" className="rounded-lg" />
+          </motion.div>
         </div>
       </motion.div>
     </div>
@@ -76,84 +65,13 @@ const AuthSkeleton = ({ type = 'login' }) => {
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           {/* Header Skeleton */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto animate-pulse"></div>
+            <ModernSkeleton.Avatar size="md" className="mx-auto mb-4" />
+            <ModernSkeleton width="w-3/4" height="h-8" className="mx-auto mb-2" />
+            <ModernSkeleton width="w-1/2" height="h-4" className="mx-auto" />
           </div>
 
           {/* Form Skeleton */}
-          <div className="space-y-6">
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2 animate-pulse"></div>
-                <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-              </div>
-              <div>
-                <div className="h-4 bg-gray-200 rounded w-1/3 mb-2 animate-pulse"></div>
-                <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-              </div>
-            </div>
-
-            {/* Username Field */}
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            {/* Password Fields */}
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            {/* Phone Field */}
-            <div>
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-2 animate-pulse"></div>
-              <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-            </div>
-
-            {/* Terms Checkbox */}
-            <div className="flex items-start space-x-3">
-              <div className="w-5 h-5 bg-gray-200 rounded mt-0.5 animate-pulse"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-gray-200 rounded w-full mb-1 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-              </div>
-            </div>
-
-            {/* Register Button */}
-            <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
-              </div>
-            </div>
-
-            {/* Google Button */}
-            <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
-
-            {/* Login Link */}
-            <div className="text-center">
-              <div className="h-4 bg-gray-200 rounded w-48 mx-auto animate-pulse"></div>
-            </div>
-          </div>
+          <ModernSkeleton.Form fields={7} />
         </div>
       </motion.div>
     </div>
@@ -164,44 +82,84 @@ const AuthSkeleton = ({ type = 'login' }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full max-w-md"
       >
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           {/* Header Skeleton */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-2 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto animate-pulse"></div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+            >
+              <ModernSkeleton.Avatar size="lg" className="mx-auto mb-4" />
+            </motion.div>
+            <ModernSkeleton width="w-3/4" height="h-8" className="mx-auto mb-2 rounded-lg" />
+            <ModernSkeleton width="w-1/2" height="h-4" className="mx-auto mb-2 rounded" />
+            <ModernSkeleton width="w-1/3" height="h-4" className="mx-auto rounded" />
           </div>
 
           {/* OTP Input Skeleton */}
-          <div className="mb-6">
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-4 animate-pulse"></div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+            className="mb-6"
+          >
+            <ModernSkeleton width="w-1/2" height="h-4" className="mx-auto mb-4 rounded" />
             <div className="flex justify-center space-x-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 + i * 0.05, duration: 0.2 }}
+                >
+                  <ModernSkeleton width="w-12" height="h-12" className="rounded-lg" />
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Timer Skeleton */}
-          <div className="text-center mb-6">
-            <div className="h-4 bg-gray-200 rounded w-32 mx-auto animate-pulse"></div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.3 }}
+            className="text-center mb-6"
+          >
+            <ModernSkeleton width="w-32" height="h-4" className="mx-auto rounded" />
+          </motion.div>
 
           {/* Verify Button */}
-          <div className="h-12 bg-gray-200 rounded-lg mb-4 animate-pulse"></div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.3 }}
+          >
+            <ModernSkeleton.Button width="w-full" height="h-12" className="mb-4 rounded-lg" />
+          </motion.div>
 
           {/* Resend Button */}
-          <div className="text-center">
-            <div className="h-4 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9, duration: 0.3 }}
+            className="text-center"
+          >
+            <ModernSkeleton width="w-24" height="h-4" className="mx-auto rounded" />
+          </motion.div>
 
           {/* Back Button */}
-          <div className="text-center mt-6">
-            <div className="h-4 bg-gray-200 rounded w-32 mx-auto animate-pulse"></div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.0, duration: 0.3 }}
+            className="text-center mt-6"
+          >
+            <ModernSkeleton width="w-32" height="h-4" className="mx-auto rounded" />
+          </motion.div>
         </div>
       </motion.div>
     </div>

@@ -1,54 +1,44 @@
 import React from 'react'
 import Card from '../../../../components/ui/Card'
 import Button from '../../../../components/ui/Button'
+import Badge from '../../../../components/ui/Badge'
+import Pagination from '../../../../components/ui/Pagination'
+import LoadingSpinner from '../../../../components/ui/LoadingSpinner'
 import { formatPrice } from '../../../../utils/format'
 
-const ProductsTable = () => {
-  const products = [
-    {
-      id: 1,
-      name: 'MacBook Pro 16"',
-      sku: 'MBP-16-001',
-      price: 1299.99,
-      stock: 15,
-      status: 'active',
-      category: 'Laptops',
-    },
-    {
-      id: 2,
-      name: 'iPhone 15 Pro',
-      sku: 'IPH-15-PRO-001',
-      price: 599.99,
-      stock: 32,
-      status: 'active',
-      category: 'Smartphones',
-    },
-    {
-      id: 3,
-      name: 'Samsung Galaxy S24',
-      sku: 'SGS-24-001',
-      price: 599.99,
-      stock: 0,
-      status: 'inactive',
-      category: 'Smartphones',
-    },
-  ]
-
+const ProductsTable = ({ products, loading, onEdit, onDelete, onViewDetails, currentPage = 1, totalPages = 1, onPageChange }) => {
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'active':
-        return 'text-success-600 bg-success-100'
+        return 'bg-success-100 text-success-700'
       case 'inactive':
-        return 'text-gray-600 bg-gray-100'
+      case 'draft':
+        return 'bg-gray-100 text-gray-700'
       default:
-        return 'text-gray-600 bg-gray-100'
+        return 'bg-gray-100 text-gray-700'
     }
   }
 
   const getStockColor = (stock) => {
-    if (stock === 0) return 'text-error-600'
-    if (stock < 10) return 'text-warning-600'
+    if (stock === 0) return 'text-error-600 font-semibold'
+    if (stock < 10) return 'text-warning-600 font-medium'
     return 'text-success-600'
+  }
+
+  const getStatus = (product) => {
+    if (product.is_active === false) return 'inactive'
+    if (product.status) return product.status
+    return 'active'
+  }
+
+  if (loading && products.length === 0) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner />
+        </div>
+      </Card>
+    )
   }
 
   return (
@@ -78,44 +68,98 @@ const ProductsTable = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 bg-gray-100 rounded-lg flex-shrink-0"></div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                      <div className="text-sm text-gray-500">{product.category}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {product.sku}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatPrice(product.price)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={getStockColor(product.stock)}>
-                    {product.stock}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(product.status)}`}>
-                    {product.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">Edit</Button>
-                    <Button variant="outline" size="sm">Delete</Button>
-                  </div>
+            {products.length > 0 ? (
+              products.map((product) => {
+                const status = getStatus(product)
+                const primaryImage = product.images?.[0]?.url || product.image
+                
+                return (
+                  <tr key={product.resource_id || product.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {primaryImage ? (
+                          <img
+                            src={primaryImage}
+                            alt={product.name}
+                            className="h-10 w-10 rounded-lg object-cover flex-shrink-0"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                              e.target.nextSibling.style.display = 'flex'
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`h-10 w-10 bg-gray-100 rounded-lg flex-shrink-0 ${primaryImage ? 'hidden' : 'flex'}`}
+                        />
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {product.category?.name || product.category || 'Uncategorized'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {product.sku || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {formatPrice(product.price || 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={getStockColor(product.stock || product.stock_quantity || 0)}>
+                        {product.stock || product.stock_quantity || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge className={getStatusColor(status)}>
+                        {status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => onViewDetails(product)}
+                          className="text-primary-600 hover:text-primary-900 font-medium"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => onEdit(product)}
+                          className="text-gray-600 hover:text-gray-900 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => onDelete(product.resource_id || product.id)}
+                          className="text-error-600 hover:text-error-900 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })
+            ) : (
+              <tr>
+                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  No products found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
+      
+      {totalPages > 1 && (
+        <div className="mt-4 flex justify-center">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+          />
+        </div>
+      )}
     </Card>
   )
 }

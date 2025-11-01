@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"electronics-store/internal/dto"
+	"electronics-store/internal/repository"
 	"electronics-store/internal/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -12,11 +13,13 @@ import (
 
 type ReviewHandler struct {
 	reviewUsecase usecase.ReviewUsecase
+	productRepo   repository.ProductRepository
 }
 
-func NewReviewHandler(reviewUsecase usecase.ReviewUsecase) *ReviewHandler {
+func NewReviewHandler(reviewUsecase usecase.ReviewUsecase, productRepo repository.ProductRepository) *ReviewHandler {
 	return &ReviewHandler{
 		reviewUsecase: reviewUsecase,
+		productRepo:   productRepo,
 	}
 }
 
@@ -95,13 +98,24 @@ func (h *ReviewHandler) CreateReview(c *gin.Context) {
 // @Router /products/{id}/reviews [get]
 func (h *ReviewHandler) GetProductReviews(c *gin.Context) {
 	productIDStr := c.Param("id")
-	productID, err := strconv.ParseUint(productIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
-			Error:   "Invalid product ID",
-			Message: "Product ID must be a valid number",
-		})
-		return
+	var productID uint
+
+	ctx := c.Request.Context()
+
+	// Try to parse as numeric ID first
+	if parsedID, err := strconv.ParseUint(productIDStr, 10, 32); err == nil {
+		productID = uint(parsedID)
+	} else {
+		// If not numeric, try to look up by resource ID
+		product, err := h.productRepo.GetByResourceID(ctx, productIDStr)
+		if err != nil || product == nil {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Error:   "Product not found",
+				Message: "Product with the given ID does not exist",
+			})
+			return
+		}
+		productID = product.ID
 	}
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -114,7 +128,7 @@ func (h *ReviewHandler) GetProductReviews(c *gin.Context) {
 		limit = 10
 	}
 
-	reviews, err := h.reviewUsecase.GetReviewsByProduct(c.Request.Context(), uint(productID), page, limit)
+	reviews, err := h.reviewUsecase.GetReviewsByProduct(ctx, productID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "Failed to get reviews",

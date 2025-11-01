@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Lock, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import FormSkeleton from '../../components/ui/FormSkeleton';
 import { submitResetPassword } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import PasswordRequirements from '../../components/ui/PasswordRequirements';
+import { extractErrorMessage } from '../../utils/errorUtils';
 
 const ResetPassword = () => {
   const location = useLocation();
@@ -19,6 +19,10 @@ const ResetPassword = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const emailRef = useRef(null);
+  const otpRef = useRef(null);
+  const newPasswordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   const validate = () => {
     const e = {};
@@ -29,6 +33,18 @@ const ResetPassword = () => {
     if (!form.confirm_password) e.confirm_password = 'Confirm password is required';
     if (form.new_password && form.confirm_password && form.new_password !== form.confirm_password) e.confirm_password = 'Passwords must match';
     setErrors(e);
+    
+    // Focus on first field with error
+    if (e.email && emailRef.current) {
+      emailRef.current.focus();
+    } else if (e.otp_code && otpRef.current) {
+      otpRef.current.focus();
+    } else if (e.new_password && newPasswordRef.current) {
+      newPasswordRef.current.focus();
+    } else if (e.confirm_password && confirmPasswordRef.current) {
+      confirmPasswordRef.current.focus();
+    }
+    
     return Object.keys(e).length === 0;
   };
 
@@ -41,20 +57,30 @@ const ResetPassword = () => {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
+    setErrors({});
     try {
       await submitResetPassword(form);
       setResetSuccess(true);
       toast.success('Password reset! Please log in.');
       setTimeout(() => { navigate('/auth/login'); }, 1500);
     } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || 'Reset failed';
-      toast.error(msg);
-    } finally {
       setLoading(false);
+      
+      // Extract error message from backend
+      const errorMessage = extractErrorMessage(err, {
+        defaultMessage: 'Password reset failed. Please try again.'
+      });
+      
+      setErrors({ submit: errorMessage });
+      
+      // Focus on email field if reset fails
+      if (emailRef.current) {
+        emailRef.current.focus();
+      }
+      
+      toast.error(errorMessage);
     }
   };
-
-  if (loading) return <FormSkeleton type="reset" />;
 
   return (
     <div className="max-w-md mx-auto min-h-[480px] flex flex-col justify-center">
@@ -99,9 +125,20 @@ const ResetPassword = () => {
                 <h2 className="text-2xl font-bold text-gray-800 text-center">Reset your password</h2>
                 <span className="text-gray-500 text-center text-sm mt-1 max-w-xs">Enter the 6-digit code sent to your email and set a strong new password.</span>
               </div>
+              {errors.submit && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-2">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium">{errors.submit}</p>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                 <input
+                  ref={emailRef}
                   type="email"
                   name="email"
                   autoComplete="email"
@@ -111,11 +148,19 @@ const ResetPassword = () => {
                   placeholder="Enter your email"
                   disabled={loading}
                 />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.email}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">OTP Code</label>
                 <input
+                  ref={otpRef}
                   type="text"
                   name="otp_code"
                   value={form.otp_code}
@@ -125,11 +170,19 @@ const ResetPassword = () => {
                   placeholder="Enter the 6-digit OTP"
                   disabled={loading}
                 />
-                {errors.otp_code && <p className="text-red-500 text-sm mt-1">{errors.otp_code}</p>}
+                {errors.otp_code && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.otp_code}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
                 <input
+                  ref={newPasswordRef}
                   type="password"
                   name="new_password"
                   autoComplete="new-password"
@@ -140,11 +193,19 @@ const ResetPassword = () => {
                   disabled={loading}
                 />
                 <PasswordRequirements value={form.new_password} />
-                {errors.new_password && <p className="text-red-500 text-sm mt-1">{errors.new_password}</p>}
+                {errors.new_password && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.new_password}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
                 <input
+                  ref={confirmPasswordRef}
                   type="password"
                   name="confirm_password"
                   autoComplete="new-password"
@@ -154,14 +215,28 @@ const ResetPassword = () => {
                   placeholder="Confirm password"
                   disabled={loading}
                 />
-                {errors.confirm_password && <p className="text-red-500 text-sm mt-1">{errors.confirm_password}</p>}
+                {errors.confirm_password && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.confirm_password}
+                  </p>
+                )}
               </div>
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Reset Password
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Resetting Password...
+                  </div>
+                ) : (
+                  'Reset Password'
+                )}
               </button>
               <div className="mt-2 text-center">
                 <Link to="/auth/login" className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors duration-200 hover:underline">

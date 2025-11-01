@@ -18,6 +18,13 @@ type CategoryListItem struct {
 type CategoryRepository interface {
 	ListWithCounts(ctx context.Context, limit int) ([]CategoryListItem, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Category, error)
+	GetByID(ctx context.Context, id uint) (*models.Category, error)
+	GetByResourceID(ctx context.Context, resourceID string) (*models.Category, error)
+	List(ctx context.Context, limit, offset int) ([]*models.Category, error)
+	Create(ctx context.Context, category *models.Category) error
+	Update(ctx context.Context, category *models.Category) error
+	Delete(ctx context.Context, id uint) error
+	Count(ctx context.Context) (int64, error)
 }
 
 type categoryRepository struct {
@@ -56,6 +63,56 @@ func (r *categoryRepository) GetBySlug(ctx context.Context, slug string) (*model
 		return nil, err
 	}
 	return &cat, nil
+}
+
+func (r *categoryRepository) GetByID(ctx context.Context, id uint) (*models.Category, error) {
+	var cat models.Category
+	if err := r.db.WithContext(ctx).First(&cat, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &cat, nil
+}
+
+func (r *categoryRepository) GetByResourceID(ctx context.Context, resourceID string) (*models.Category, error) {
+	var cat models.Category
+	if err := r.db.WithContext(ctx).Where("resource_id = ?", resourceID).First(&cat).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &cat, nil
+}
+
+func (r *categoryRepository) List(ctx context.Context, limit, offset int) ([]*models.Category, error) {
+	var categories []*models.Category
+	err := r.db.WithContext(ctx).
+		Order("sort_order ASC, name ASC").
+		Limit(limit).
+		Offset(offset).
+		Find(&categories).Error
+	return categories, err
+}
+
+func (r *categoryRepository) Create(ctx context.Context, category *models.Category) error {
+	return r.db.WithContext(ctx).Create(category).Error
+}
+
+func (r *categoryRepository) Update(ctx context.Context, category *models.Category) error {
+	return r.db.WithContext(ctx).Save(category).Error
+}
+
+func (r *categoryRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&models.Category{}, id).Error
+}
+
+func (r *categoryRepository) Count(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Category{}).Count(&count).Error
+	return count, err
 }
 
 

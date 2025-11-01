@@ -1,35 +1,177 @@
-import React, { Suspense } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import Button from '../../../components/ui/Button'
+import Input from '../../../components/ui/Input'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner'
+import { adminAPI } from '../../../services/adminApi'
+import { productsAPI, reviewsAPI } from '../../../services/api'
+import toast from 'react-hot-toast'
 
 // Lazy load components
 const ProductsTable = React.lazy(() => import('./components/ProductsTable'))
 const ProductsFilter = React.lazy(() => import('./components/ProductsFilter'))
+const ProductModal = React.lazy(() => import('./components/ProductModal'))
+const ProductDetailsModal = React.lazy(() => import('./components/ProductDetailsModal'))
 
 const AdminProducts = () => {
+  const navigate = useNavigate()
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    category: '',
+    page: 1,
+    limit: 20,
+  })
+  const [total, setTotal] = useState(0)
+
+  useEffect(() => {
+    fetchProducts()
+  }, [filters])
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const params = {
+        page: filters.page,
+        limit: filters.limit,
+        ...(filters.search && { search: filters.search }),
+        ...(filters.status && { status: filters.status }),
+        ...(filters.category && { category_id: filters.category }),
+      }
+      const response = await adminAPI.products.getProducts(params)
+      setProducts(response.products || response || [])
+      setTotal(response.total || 0)
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
+      toast.error('Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await adminAPI.products.deleteProduct(productId)
+      toast.success('Product deleted successfully')
+      fetchProducts()
+    } catch (error) {
+      console.error('Failed to delete product:', error)
+      toast.error('Failed to delete product')
+    }
+  }
+
+  const handleEdit = (product) => {
+    setSelectedProduct(product)
+    setShowAddModal(true)
+  }
+
+  const handleViewDetails = async (product) => {
+    try {
+      // Fetch full product details with reviews
+      const productDetails = await productsAPI.getProduct(product.resource_id || product.id)
+      const reviews = await reviewsAPI.getProductReviews(product.resource_id || product.id)
+      setSelectedProduct({ ...productDetails, reviews: reviews.reviews || reviews || [] })
+      setShowDetailsModal(true)
+    } catch (error) {
+      console.error('Failed to fetch product details:', error)
+      toast.error('Failed to load product details')
+    }
+  }
+
+  const handleProductSaved = () => {
+    setShowAddModal(false)
+    setSelectedProduct(null)
+    fetchProducts()
+  }
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-3xl font-bold text-gray-900">Products</h1>
-          <button className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
-            Add Product
-          </button>
+          <p className="text-gray-600 mt-1">Manage your product catalog</p>
         </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <Suspense fallback={<LoadingSpinner />}>
-              <ProductsFilter />
-            </Suspense>
-          </div>
-          
-          <div className="lg:col-span-3">
-            <Suspense fallback={<LoadingSpinner />}>
-              <ProductsTable />
-            </Suspense>
-          </div>
+        <Button onClick={() => {
+          setSelectedProduct(null)
+          setShowAddModal(true)
+        }}>
+          + Add Product
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1">
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProductsFilter
+              filters={filters}
+              onFilterChange={(newFilters) => setFilters({ ...filters, ...newFilters, page: 1 })}
+            />
+          </Suspense>
+        </div>
+
+        <div className="lg:col-span-3">
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProductsTable
+              products={products}
+              loading={loading}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onViewDetails={handleViewDetails}
+              currentPage={filters.page}
+              totalPages={Math.ceil(total / filters.limit)}
+              onPageChange={(page) => setFilters({ ...filters, page })}
+            />
+          </Suspense>
         </div>
       </div>
+
+      {/* Add/Edit Product Modal */}
+      {showAddModal && (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProductModal
+            product={selectedProduct}
+            isOpen={showAddModal}
+            onClose={() => {
+              setShowAddModal(false)
+              setSelectedProduct(null)
+            }}
+            onSave={handleProductSaved}
+          />
+        </Suspense>
+      )}
+
+      {/* Product Details Modal */}
+      {showDetailsModal && selectedProduct && (
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProductDetailsModal
+            product={selectedProduct}
+            isOpen={showDetailsModal}
+            onClose={() => {
+              setShowDetailsModal(false)
+              setSelectedProduct(null)
+            }}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }

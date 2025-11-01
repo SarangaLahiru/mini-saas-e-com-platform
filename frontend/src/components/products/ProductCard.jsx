@@ -93,14 +93,13 @@ const ProductCard = ({ product, className = '' }) => {
 
   return (
     <motion.div
-      className={`rounded-xl border border-gray-100 bg-white shadow-md hover:shadow-xl transition-all duration-200 ${className}`}
+      className={`rounded-xl border border-gray-100 bg-white shadow-md hover:shadow-xl transition-all duration-200 w-full ${className}`}
       whileHover={{ y: -8 }}
-      style={{ maxWidth: 320, height: 460 }}
       tabIndex={0}
     >
-      <Link to={`/products/${product.resource_id}`} className="block group focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-xl h-full">
-        {/* Image Wrapper - fixed height to enforce uniform cards */}
-        <div className="relative isolate w-full h-64 overflow-hidden rounded-t-xl bg-gray-100">
+      <Link to={`/products/${product.resource_id}`} className="block group focus:outline-none focus:ring-2 focus:ring-blue-400 rounded-xl h-full flex flex-col">
+        {/* Image Wrapper - responsive height for uniform cards */}
+        <div className="relative isolate w-full h-48 sm:h-56 md:h-64 overflow-hidden rounded-t-xl bg-gray-100 flex-shrink-0">
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -119,13 +118,13 @@ const ProductCard = ({ product, className = '' }) => {
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
             {product.is_featured && (
-              <span className="bg-blue-600 text-white px-2 py-0.5 text-[11px] rounded font-bold shadow-sm">Featured</span>
+              <span className="bg-blue-600 text-white px-2 sm:px-2.5 py-1 text-xs sm:text-[11px] rounded font-bold shadow-sm whitespace-nowrap">Featured</span>
             )}
             {discountPercentage > 0 && (
-              <span className="bg-red-500 text-white px-2 py-0.5 text-[11px] rounded font-semibold shadow-sm">-{discountPercentage}%</span>
+              <span className="bg-red-500 text-white px-2 sm:px-2.5 py-1 text-xs sm:text-[11px] rounded font-semibold shadow-sm whitespace-nowrap">-{discountPercentage}%</span>
             )}
             {product.stock < 1 && (
-              <span className="bg-gray-600 text-white px-2 py-0.5 text-[11px] rounded font-bold shadow-sm">Out of Stock</span>
+              <span className="bg-gray-600 text-white px-2 sm:px-2.5 py-1 text-xs sm:text-[11px] rounded font-bold shadow-sm whitespace-nowrap">Out of Stock</span>
             )}
           </div>
 
@@ -136,40 +135,40 @@ const ProductCard = ({ product, className = '' }) => {
             disabled={isWishlistLoading}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="absolute top-2 right-2 p-2 bg-white/95 hover:bg-white rounded-full shadow group-hover:opacity-100 opacity-0 focus:opacity-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute top-2 right-2 p-2 sm:p-2.5 bg-white/95 hover:bg-white rounded-full shadow-md group-hover:opacity-100 opacity-100 sm:opacity-0 focus:opacity-100 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
             {isInWishlist ? (
-              <HeartSolidIcon className="h-5 w-5 text-red-500" />
+              <HeartSolidIcon className="h-5 w-5 sm:h-5 sm:w-5 text-red-500" />
             ) : (
-              <HeartIcon className="h-5 w-5 text-gray-700" />
+              <HeartIcon className="h-5 w-5 sm:h-5 sm:w-5 text-gray-700" />
             )}
           </motion.button>
         </div>
 
         {/* Info */}
-        <div className="flex flex-col justify-between h-[calc(460px-16rem)] p-4 transition-transform duration-300 group-hover:-translate-y-0.5">
+        <div className="flex flex-col justify-between flex-1 p-3 sm:p-4 transition-transform duration-300 group-hover:-translate-y-0.5">
           {/* Category */}
           {product.category?.name && (
-            <div className="text-xs text-blue-600 font-semibold mb-1 truncate">
+            <div className="text-xs sm:text-xs text-blue-600 font-semibold mb-1 truncate">
               {product.category.name}
             </div>
           )}
           {/* Name */}
-          <h3 className="font-bold text-gray-900 text-base mb-1.5 min-h-[2.5rem] line-clamp-2 group-hover:text-blue-700 transition-colors">
+          <h3 className="font-bold text-gray-900 text-sm sm:text-base mb-1.5 min-h-[2.5rem] sm:min-h-[2.5rem] line-clamp-2 group-hover:text-blue-700 transition-colors">
             {product.name}
           </h3>
           {/* Description */}
-          <div className="text-sm text-gray-600 mb-3 line-clamp-2">
+          <div className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 line-clamp-2 flex-shrink-0">
             {product.description}
           </div>
 
-          <div className="flex items-end justify-between mt-auto">
+          <div className="flex items-end justify-between mt-auto gap-2 sm:gap-0">
             {/* Price */}
-            <div className="flex flex-col gap-0.5">
-              <span className="text-lg font-bold text-blue-700">{formatPrice(product.price)}</span>
+            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+              <span className="text-base sm:text-lg font-bold text-blue-700 truncate">{formatPrice(product.price)}</span>
               {product.compare_price && product.compare_price > product.price && (
-                <span className="text-sm text-gray-400 line-through">{formatPrice(product.compare_price)}</span>
+                <span className="text-xs sm:text-sm text-gray-400 line-through truncate">{formatPrice(product.compare_price)}</span>
               )}
             </div>
 
@@ -179,10 +178,10 @@ const ProductCard = ({ product, className = '' }) => {
               loading={isAddingToCart}
               disabled={product.stock < 1}
               size="sm"
-              className="rounded-lg min-w-[44px] ml-1 whitespace-nowrap shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg min-w-[44px] sm:min-w-[auto] flex-shrink-0 ml-1 whitespace-nowrap shadow focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation text-xs sm:text-sm px-2 sm:px-3"
             >
-              <ShoppingCartIcon className="w-4 h-4 mr-1" />
-              <span>Add</span>
+              <ShoppingCartIcon className="w-4 h-4 sm:w-4 sm:h-4 mr-1" />
+              <span className="hidden sm:inline">Add</span>
             </Button>
           </div>
         </div>

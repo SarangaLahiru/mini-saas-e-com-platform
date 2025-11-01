@@ -1,14 +1,17 @@
-import React, { Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import React, { Suspense, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Layout Components
 import EnhancedHeader from './components/layout/EnhancedHeader'
 import Footer from './components/layout/Footer'
 import Sidebar from './components/layout/Sidebar'
-import LoadingSpinner from './components/ui/LoadingSpinner'
+import AdminLayout from './components/layout/AdminLayout'
+import PageSkeleton from './components/ui/PageSkeleton'
 import SkeletonHeader from './components/ui/SkeletonHeader'
 import SkeletonList from './components/ui/SkeletonList'
+import AuthSkeleton from './components/auth/AuthSkeleton'
+import ProcessingLoader from './components/ui/ProcessingLoader'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 // Lazy loaded pages
@@ -26,6 +29,9 @@ const AdminDashboard = React.lazy(() => import('./pages/Admin/Dashboard'))
 const AdminProducts = React.lazy(() => import('./pages/Admin/Products'))
 const AdminOrders = React.lazy(() => import('./pages/Admin/Orders'))
 const AdminUsers = React.lazy(() => import('./pages/Admin/Users'))
+const AdminAnalysis = React.lazy(() => import('./pages/Admin/Analysis'))
+const AdminCustomers = React.lazy(() => import('./pages/Admin/Customers'))
+const AdminCategories = React.lazy(() => import('./pages/Admin/Categories'))
 const NotFound = React.lazy(() => import('./pages/NotFound'))
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
@@ -49,20 +55,84 @@ const pageTransition = {
   duration: 0.4
 }
 
-function App() {
+function AppContent() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const { sidebarOpen, setSidebar } = useApp()
+  const location = useLocation()
+  const isAdminRoute = location.pathname.startsWith('/admin')
+  const isAuthRoute = location.pathname.startsWith('/auth')
 
-  if (isLoading) {
-    return <LoadingSpinner />
+  // Check if we're coming from Google auth callback to show consistent loading
+  const isFromGoogleAuth = sessionStorage.getItem('google_auth_redirecting') === 'true'
+  
+  // Only show skeleton on initial app load, not during auth operations
+  // Skip skeleton on auth routes (they handle their own loading states)
+  // Also skip if coming from Google auth (show ProcessingLoader overlay instead)
+  if (isLoading && !isAuthRoute && !isFromGoogleAuth) {
+    return <PageSkeleton.FullPage showHeader={!isAdminRoute} showFooter={!isAdminRoute} />
+  }
+  
+  // If coming from Google auth, show ProcessingLoader overlay until page loads
+  // This ensures smooth transition without skeleton flash
+  useEffect(() => {
+    if (isFromGoogleAuth && isLoading) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isFromGoogleAuth, isLoading])
+  
+  if (isFromGoogleAuth && isLoading) {
+    return (
+      <div 
+        className="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4"
+        style={{ 
+          zIndex: 9999,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh',
+          overflow: 'hidden',
+          margin: 0,
+          padding: 0
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-md"
+        >
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+            <ProcessingLoader
+              message="Loading your dashboard..."
+              subMessage="Please wait while we set everything up"
+              variant="success"
+              size="md"
+            />
+          </div>
+        </motion.div>
+      </div>
+    )
+  }
+  
+  // Clear the flag once loading completes
+  if (isFromGoogleAuth && !isLoading) {
+    sessionStorage.removeItem('google_auth_redirecting')
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <EnhancedHeader />
+      {!isAdminRoute && <EnhancedHeader />}
       
       <main className="min-h-screen">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" key={location.pathname}>
           <Routes>
             {/* Public Routes */}
             <Route 
@@ -118,7 +188,7 @@ function App() {
             <Route 
               path="/products/:id" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<PageSkeleton.ProductDetail />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -134,7 +204,7 @@ function App() {
             <Route 
               path="/category/:slug" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<PageSkeleton.ProductsList />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -150,7 +220,7 @@ function App() {
             <Route 
               path="/cart" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<PageSkeleton.Cart />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -166,7 +236,7 @@ function App() {
             <Route 
               path="/auth/login" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<AuthSkeleton type="login" />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -182,7 +252,7 @@ function App() {
             <Route 
               path="/auth/register" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<AuthSkeleton type="register" />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -206,7 +276,7 @@ function App() {
             <Route 
               path="/auth/google/callback" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<AuthSkeleton type="login" />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -228,7 +298,7 @@ function App() {
               path="/checkout" 
               element={
                 <ProtectedRoute requireAuth={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <Suspense fallback={<PageSkeleton.Checkout />}>
                     <motion.div
                       initial="initial"
                       animate="in"
@@ -246,7 +316,7 @@ function App() {
               path="/profile" 
               element={
                 <ProtectedRoute requireAuth={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <Suspense fallback={<PageSkeleton.Profile />}>
                     <motion.div
                       initial="initial"
                       animate="in"
@@ -264,7 +334,7 @@ function App() {
               path="/orders" 
               element={
                 <ProtectedRoute requireAuth={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
+                  <Suspense fallback={<PageSkeleton.Profile />}>
                     <motion.div
                       initial="initial"
                       animate="in"
@@ -281,83 +351,132 @@ function App() {
             
             {/* Admin Routes */}
             <Route 
-              path="/admin" 
+              path="/admin/*" 
               element={
                 <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <motion.div
-                      initial="initial"
-                      animate="in"
-                      exit="out"
-                      variants={pageVariants}
-                      transition={pageTransition}
-                    >
-                      <AdminDashboard />
-                    </motion.div>
-                  </Suspense>
+                  <AdminLayout />
                 </ProtectedRoute>
               } 
-            />
-            <Route 
-              path="/admin/products" 
-              element={
-                <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <motion.div
-                      initial="initial"
-                      animate="in"
-                      exit="out"
-                      variants={pageVariants}
-                      transition={pageTransition}
-                    >
-                      <AdminProducts />
-                    </motion.div>
-                  </Suspense>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/orders" 
-              element={
-                <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <motion.div
-                      initial="initial"
-                      animate="in"
-                      exit="out"
-                      variants={pageVariants}
-                      transition={pageTransition}
-                    >
-                      <AdminOrders />
-                    </motion.div>
-                  </Suspense>
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/admin/users" 
-              element={
-                <ProtectedRoute requireAuth={true} requireAdmin={true}>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <motion.div
-                      initial="initial"
-                      animate="in"
-                      exit="out"
-                      variants={pageVariants}
-                      transition={pageTransition}
-                    >
-                      <AdminUsers />
-                    </motion.div>
-                  </Suspense>
-                </ProtectedRoute>
-              } 
-            />
+            >
+                    <Route
+                      index
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminDashboard />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="analysis"
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminAnalysis />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="customers"
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminCustomers />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="products"
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminProducts />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="categories"
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminCategories />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="orders"
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminOrders />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route 
+                      path="users" 
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminUsers />
+                          </motion.div>
+                        </Suspense>
+                      } 
+                    />
+            </Route>
             
             {/* 404 Route */}
             <Route 
               path="*" 
               element={
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<PageSkeleton.FullPage />}>
                   <motion.div
                     initial="initial"
                     animate="in"
@@ -374,10 +493,18 @@ function App() {
         </AnimatePresence>
       </main>
       
-      <Footer />
-      <Sidebar />
+      {!isAdminRoute && (
+        <>
+          <Footer />
+          <Sidebar />
+        </>
+      )}
     </div>
   )
+}
+
+function App() {
+  return <AppContent />
 }
 
 export default App

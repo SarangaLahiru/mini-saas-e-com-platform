@@ -167,7 +167,8 @@ func (u *authUsecase) GoogleAuth(ctx context.Context, req dto.GoogleAuthRequest)
 		}
 		if existingUser != nil {
 			// Link Google account to existing user
-			existingUser.GoogleID = googleUserInfo.ID
+			googleID := googleUserInfo.ID
+			existingUser.GoogleID = &googleID
 			existingUser.IsVerified = true
 			if googleUserInfo.Picture != "" {
 				existingUser.Avatar = googleUserInfo.Picture
@@ -202,8 +203,9 @@ func (u *authUsecase) GoogleAuth(ctx context.Context, req dto.GoogleAuthRequest)
 			}
 			
 			// Create new user
+			googleID := googleUserInfo.ID
 			user = &models.User{
-				GoogleID:   googleUserInfo.ID,
+				GoogleID:   &googleID,
 				Email:      googleUserInfo.Email,
 				Username:   username,
 				FirstName:  firstName,
@@ -273,7 +275,8 @@ func (u *authUsecase) GoogleIDTokenAuth(ctx context.Context, req dto.GoogleIDTok
 		}
 		if existingUser != nil {
 			// Link Google account to existing user
-			existingUser.GoogleID = googleUserInfo.ID
+			googleID := googleUserInfo.ID
+			existingUser.GoogleID = &googleID
 			existingUser.IsVerified = true
 			if googleUserInfo.Picture != "" {
 				existingUser.Avatar = googleUserInfo.Picture
@@ -308,8 +311,9 @@ func (u *authUsecase) GoogleIDTokenAuth(ctx context.Context, req dto.GoogleIDTok
 			}
 			
 			// Create new user
+			googleID := googleUserInfo.ID
 			user = &models.User{
-				GoogleID:   googleUserInfo.ID,
+				GoogleID:   &googleID,
 				Email:      googleUserInfo.Email,
 				Username:   username,
 				FirstName:  firstName,
@@ -418,7 +422,8 @@ func (u *authUsecase) ExchangeGoogleCode(ctx context.Context, code string) (*mod
 		}
 		if existingUser != nil {
 			// Link Google account to existing user
-			existingUser.GoogleID = googleUserInfo.ID
+			googleID := googleUserInfo.ID
+			existingUser.GoogleID = &googleID
 			existingUser.IsVerified = true
 			if googleUserInfo.Picture != "" {
 				existingUser.Avatar = googleUserInfo.Picture
@@ -453,8 +458,9 @@ func (u *authUsecase) ExchangeGoogleCode(ctx context.Context, code string) (*mod
 			}
 			
 			// Create new user
+			googleID := googleUserInfo.ID
 			user = &models.User{
-				GoogleID:   googleUserInfo.ID,
+				GoogleID:   &googleID,
 				Email:      googleUserInfo.Email,
 				Username:   username,
 				FirstName:  firstName,

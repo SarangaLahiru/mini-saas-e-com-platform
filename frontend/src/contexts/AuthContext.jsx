@@ -46,6 +46,13 @@ const authReducer = (state, action) => {
         ...state,
         user: { ...state.user, ...action.payload },
       }
+    case 'LOGIN_START':
+      // Separate action for login to avoid showing full page loader
+      return {
+        ...state,
+        isLoading: false, // Don't show full page loader during login
+        error: null,
+      }
     case 'CLEAR_ERROR':
       return {
         ...state,
@@ -69,25 +76,31 @@ const initialState = {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // Initialize auth on mount
+  // Initialize auth on mount - optimized to reduce loading time
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        if (!tokenManager.isAuthenticated()) {
-          dispatch({ type: 'AUTH_FAILURE', payload: null })
-          return
-        }
+      // Quick check - if no tokens, immediately set as not authenticated
+      if (!tokenManager.isAuthenticated()) {
+        dispatch({ type: 'AUTH_FAILURE', payload: null })
+        return
+      }
 
-        // Verify token and get user data
-        const userData = await authAPI.getProfile()
+      try {
+        // Verify token and get user data (with timeout)
+        const userData = await Promise.race([
+          authAPI.getProfile(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Auth timeout')), 5000)
+          )
+        ])
         dispatch({ type: 'AUTH_SUCCESS', payload: { user: normalizeUserData(userData) } })
       } catch (error) {
         console.error('Auth initialization failed:', error)
         
-        // Try to refresh token if access token is invalid
-        try {
-          const refreshToken = tokenManager.getRefreshToken()
-          if (refreshToken) {
+        // Only try refresh if we have a refresh token
+        const refreshToken = tokenManager.getRefreshToken()
+        if (refreshToken && error.message !== 'Auth timeout') {
+          try {
             const response = await authAPI.refreshToken(refreshToken)
             tokenManager.setTokens(response.access_token, response.refresh_token)
             
@@ -95,14 +108,14 @@ export const AuthProvider = ({ children }) => {
             const userData = await authAPI.getProfile()
             dispatch({ type: 'AUTH_SUCCESS', payload: { user: normalizeUserData(userData) } })
             return
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError)
           }
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError)
         }
         
         // If refresh also fails, clear tokens and set as unauthenticated
         tokenManager.clearTokens()
-        dispatch({ type: 'AUTH_FAILURE', payload: 'Session expired. Please login again.' })
+        dispatch({ type: 'AUTH_FAILURE', payload: null })
       }
     }
 
@@ -112,19 +125,23 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (credentials) => {
     try {
-      dispatch({ type: 'AUTH_START' })
+      // Use LOGIN_START instead of AUTH_START to avoid full page loader
+      dispatch({ type: 'LOGIN_START' })
       const response = await authAPI.login(credentials)
 
       // Store tokens using token manager (modern standard)
       tokenManager.setTokens(response.access_token, response.refresh_token)
 
       dispatch({ type: 'AUTH_SUCCESS', payload: { user: normalizeUserData(response.user) } })
-      toast.success('Login successful!')
+      // Show toast here - single source of truth
+      toast.success('Login successful! Welcome back!')
       return response
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Login failed'
-      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage })
-      toast.error(errorMessage)
+      // Don't dispatch AUTH_FAILURE on login error to avoid unnecessary state changes
+      // This prevents the form from appearing to refresh
+      dispatch({ type: 'CLEAR_ERROR' })
+      // Don't show toast - let the form component handle error display
       throw error
     }
   }
@@ -152,7 +169,7 @@ export const AuthProvider = ({ children }) => {
             message: response.message || 'Please verify your email to complete registration'
           } 
         })
-        toast.success('Registration successful! Please check your email for verification code.')
+        // Don't show toast here - the UI will show OTP verification step, which is enough feedback
       }
       
       return response
@@ -173,12 +190,12 @@ export const AuthProvider = ({ children }) => {
       tokenManager.setTokens(authResponse.access_token, authResponse.refresh_token)
 
       dispatch({ type: 'AUTH_SUCCESS', payload: { user: normalizeUserData(authResponse.user) } })
-      toast.success('Google authentication successful!')
+      // Don't show toast here - GoogleCallback handles the UX with ProcessingLoader
       return authResponse
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Google authentication failed'
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage })
-      toast.error(errorMessage)
+      // Error toast is handled by GoogleCallback component
       throw error
     }
   }

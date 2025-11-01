@@ -14,11 +14,11 @@ type Order struct {
 	UserID        uint      `gorm:"not null" json:"user_id"`
 	Status        string    `gorm:"size:20;default:pending" json:"status"`
 	PaymentStatus string    `gorm:"size:20;default:pending" json:"payment_status"`
-	Subtotal      float64   `gorm:"type:decimal(10,2);not null" json:"subtotal"`
-	TaxAmount     float64   `gorm:"type:decimal(10,2);default:0" json:"tax_amount"`
-	ShippingCost  float64   `gorm:"type:decimal(10,2);default:0" json:"shipping_cost"`
-	DiscountAmount float64  `gorm:"type:decimal(10,2);default:0" json:"discount_amount"`
-	Total         float64   `gorm:"type:decimal(10,2);not null" json:"total"`
+	Subtotal      float64   `gorm:"type:decimal(10,2);not null;column:subtotal" json:"subtotal"`
+	TaxAmount     float64   `gorm:"type:decimal(10,2);default:0;column:tax_amount" json:"tax_amount"`
+	ShippingCost  float64   `gorm:"type:decimal(10,2);default:0;column:shipping_amount" json:"shipping_cost"`
+	DiscountAmount float64  `gorm:"type:decimal(10,2);default:0;column:discount_amount" json:"discount_amount"`
+	Total         float64   `gorm:"type:decimal(10,2);not null;column:total_amount" json:"total"`
 	Currency      string    `gorm:"size:3;default:USD" json:"currency"`
 	Notes         string    `gorm:"type:text" json:"notes"`
 	ShippedAt     *time.Time `json:"shipped_at"`

@@ -93,7 +93,7 @@ func (s *Server) setupRoutes() {
 	orderHandler := handlers.NewOrderHandler(orderUsecase)
 	cartHandler := handlers.NewCartHandler(s.db.DB)
 	wishlistHandler := handlers.NewWishlistHandler(s.db.DB)
-	reviewHandler := handlers.NewReviewHandler(reviewUsecase)
+	reviewHandler := handlers.NewReviewHandler(reviewUsecase, productRepo)
 
 	// API routes
 	api := s.router.Group("/api/v1")
@@ -170,7 +170,54 @@ func (s *Server) setupRoutes() {
 			admin.GET("/health", func(c *gin.Context) {
 				c.JSON(http.StatusOK, gin.H{"status": "ok"})
 			})
-			// TODO: add products/users/orders analytics endpoints here
+
+			// Initialize admin handlers
+			adminAnalyticsHandler := handlers.NewAdminAnalyticsHandler(s.db)
+			adminProductsHandler := handlers.NewAdminProductsHandler(productUsecase, productRepo, categoryRepo)
+			adminOrdersHandler := handlers.NewAdminOrdersHandler(orderRepo)
+			adminUsersHandler := handlers.NewAdminUsersHandler(userRepo, orderRepo)
+			adminCategoriesHandler := handlers.NewAdminCategoriesHandler(categoryRepo)
+
+			// Analytics routes
+			analytics := admin.Group("/analytics")
+			{
+				analytics.GET("/dashboard", adminAnalyticsHandler.GetDashboard)
+				analytics.GET("/sales", adminAnalyticsHandler.GetSalesData)
+				analytics.GET("/top-products", adminAnalyticsHandler.GetTopProducts)
+			}
+
+			// Products management routes
+			products := admin.Group("/products")
+			{
+				products.GET("", adminProductsHandler.ListProducts)
+				products.GET("/:id", adminProductsHandler.GetProduct)
+				products.POST("", adminProductsHandler.CreateProduct)
+				products.PUT("/:id", adminProductsHandler.UpdateProduct)
+				products.DELETE("/:id", adminProductsHandler.DeleteProduct)
+			}
+
+			// Orders management routes
+			orders := admin.Group("/orders")
+			{
+				orders.GET("", adminOrdersHandler.ListOrders)
+				orders.PUT("/:id/status", adminOrdersHandler.UpdateOrderStatus)
+			}
+
+			// Users/Customers management routes
+			users := admin.Group("/users")
+			{
+				users.GET("", adminUsersHandler.ListUsers)
+				users.PUT("/:id", adminUsersHandler.UpdateUser)
+			}
+
+			// Categories management routes
+			categories := admin.Group("/categories")
+			{
+				categories.GET("", adminCategoriesHandler.ListCategories)
+				categories.POST("", adminCategoriesHandler.CreateCategory)
+				categories.PUT("/:id", adminCategoriesHandler.UpdateCategory)
+				categories.DELETE("/:id", adminCategoriesHandler.DeleteCategory)
+			}
 		}
 
 		// Order routes (Protected)

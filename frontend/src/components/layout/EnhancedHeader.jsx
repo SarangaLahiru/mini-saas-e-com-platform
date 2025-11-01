@@ -15,7 +15,9 @@ import {
   MapPin,
   HelpCircle,
   Sparkles,
-  Mail
+  Mail,
+  LayoutDashboard,
+  Shield
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { productsAPI } from '../../services/api'
@@ -47,10 +49,10 @@ const EnhancedHeader = () => {
   const handleLogout = async () => {
     try {
       await logout()
-      toast.success('Logged out successfully')
       navigate('/')
     } catch (error) {
-      toast.error('Logout failed')
+      // Error toast is already handled in AuthContext logout function
+      console.error('Logout failed:', error)
     }
   }
 
@@ -62,7 +64,17 @@ const EnhancedHeader = () => {
     }
   }
 
+  const isAdmin = user?.is_admin || user?.isAdmin
+  
   const userMenuItems = [
+    // Admin Dashboard - only for admins, placed at top
+    ...(isAdmin ? [{
+      icon: LayoutDashboard,
+      label: 'Admin Dashboard',
+      href: '/admin',
+      description: 'Manage your store',
+      adminOnly: true
+    }] : []),
     {
       icon: User,
       label: 'Profile',
@@ -211,11 +223,19 @@ const EnhancedHeader = () => {
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <Avatar 
-                      user={user} 
-                      size="sm" 
-                      showOnlineStatus={true}
-                    />
+                    <div className="relative">
+                      <Avatar 
+                        user={user} 
+                        size="sm" 
+                        showOnlineStatus={true}
+                      />
+                      {/* Admin Badge Indicator on Avatar */}
+                      {isAdmin && (
+                        <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-0.5 border-2 border-white shadow-sm">
+                          <Shield className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div className="hidden sm:block text-left">
                       <p className="text-sm font-medium text-gray-900">
                         {getUserDisplayName(user)}
@@ -293,9 +313,34 @@ const EnhancedHeader = () => {
                           </div>
                         </div>
 
+                        {/* Admin Dashboard Section - Separate section for admins */}
+                        {isAdmin && (
+                          <div className="border-t border-gray-100 py-2">
+                            <Link
+                              to="/admin"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center px-4 py-3 mx-2 mb-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg group"
+                            >
+                              <div className="bg-white/20 rounded-lg p-2 mr-3 group-hover:bg-white/30 transition-colors">
+                                <LayoutDashboard className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold">Admin Dashboard</p>
+                                  <Shield className="w-4 h-4" />
+                                </div>
+                                <p className="text-sm text-blue-100">Manage your store</p>
+                              </div>
+                              <svg className="w-5 h-5 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </Link>
+                          </div>
+                        )}
+
                         {/* Menu Items */}
                         <div className="py-2">
-                          {userMenuItems.map((item, index) => (
+                          {userMenuItems.filter(item => !item.adminOnly).map((item, index) => (
                             <Link
                               key={index}
                               to={item.href}
@@ -439,6 +484,17 @@ const EnhancedHeader = () => {
                           </>
                         ) : (
                           <>
+                            {/* Admin Dashboard Link for Mobile */}
+                            {isAdmin && (
+                              <Link
+                                to="/admin"
+                                onClick={() => { setIsMenuOpen(false); setIsAccountOpen(false) }}
+                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium hover:from-blue-700 hover:to-indigo-700 transition-colors shadow-md mb-2"
+                              >
+                                <LayoutDashboard className="w-5 h-5" />
+                                Admin Dashboard
+                              </Link>
+                            )}
                             <Link
                               to="/profile"
                               onClick={() => { setIsMenuOpen(false); setIsAccountOpen(false) }}

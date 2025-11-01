@@ -29,8 +29,23 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config
 
+        // Don't try to refresh token for login/auth endpoints - let them handle their own errors
+        // These endpoints can return 401 for invalid credentials/OTP, which is expected
+        // Check both full URL and pathname to handle different URL formats
+        const requestUrl = originalRequest.url || ''
+        const isAuthEndpoint = requestUrl.includes('/auth/login') || 
+                              requestUrl.includes('/auth/register') ||
+                              requestUrl.includes('/auth/refresh') ||
+                              requestUrl.includes('/auth/verify-otp') ||
+                              requestUrl.includes('/auth/resend-otp') ||
+                              requestUrl.includes('/auth/send-otp') ||
+                              requestUrl.includes('/auth/forgot-password') ||
+                              requestUrl.includes('/auth/password-reset') ||
+                              requestUrl.includes('/auth/reset-password')
+
         // On 401, try to refresh using cookie-based refresh token
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // But skip auth endpoints (login/register) as they should handle their own 401 errors
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
             originalRequest._retry = true
 
             try {

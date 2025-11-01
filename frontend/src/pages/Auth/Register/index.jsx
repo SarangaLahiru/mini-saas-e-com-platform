@@ -9,6 +9,7 @@ import RegisterForm from './components/RegisterForm'
 import OTPVerification from '../../../components/auth/OTPVerification'
 import AuthSkeleton from '../../../components/auth/AuthSkeleton'
 import toast from 'react-hot-toast'
+import { extractErrorMessage } from '../../../utils/errorUtils'
 
 const Register = () => {
   const { googleAuth, needsVerification, user, isAuthenticated, refreshAuthState } = useAuth()
@@ -19,33 +20,23 @@ const Register = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
   // Check if user needs verification after registration
+  // Only move to OTP step when needed - don't auto-redirect during OTP verification
   useEffect(() => {
-    if (needsVerification && user) {
+    if (needsVerification && user && step === 1) {
       setEmail(user.email)
       setStep(2) // Go to OTP verification
-    } else if (isAuthenticated && user) {
-      // User is already verified, redirect to home
-      navigate('/')
     }
-  }, [needsVerification, user, isAuthenticated, navigate])
+    // Note: Redirect after successful OTP verification is handled in handleOTPVerify
+    // We don't auto-redirect here to avoid redirecting on errors
+  }, [needsVerification, user, step])
 
   const handleRegistrationSuccess = (userEmail) => {
     setEmail(userEmail)
     setStep(2) // Go to OTP verification
   }
 
-  const handleGoogleAuth = async () => {
-    setIsGoogleLoading(true)
-    try {
-      await googleAuth()
-      toast.success('Registration successful! Welcome to our platform!')
-      navigate('/')
-    } catch (error) {
-      toast.error(error.message || 'Google registration failed')
-    } finally {
-      setIsGoogleLoading(false)
-    }
-  }
+  // Note: handleGoogleAuth is not needed here since Google redirects to /auth/google/callback
+  // The GoogleCallback component handles the auth flow and redirect
 
   const handleOTPVerify = async (otpCode) => {
     try {
@@ -56,22 +47,29 @@ const Register = () => {
         // Store tokens using token manager (modern standard)
         tokenManager.setTokens(response.access_token, response.refresh_token)
         
-        // Show success message first
-        toast.success('Email verified successfully! Welcome to our platform!')
-        
         // Refresh auth state to update user data
         await refreshAuthState()
         
-        // Small delay to show the success message, then redirect
+        // Show success toast
+        toast.success('Email verified successfully!')
+        
+        // Small delay for smooth transition, then redirect
         setTimeout(() => {
-          // Use navigate instead of window.location.href for better state management
           navigate('/')
-        }, 1000)
+        }, 800)
       } else {
-        toast.error('Verification failed - no user data received')
+        const errorMessage = 'Verification failed - no user data received'
+        toast.error(errorMessage)
+        throw new Error(errorMessage)
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'OTP verification failed')
+      // Extract error message from backend
+      const errorMessage = extractErrorMessage(error, {
+        defaultMessage: 'OTP verification failed. Please try again.'
+      })
+      
+      // Don't show toast - error is shown in OTPVerification component
+      // Re-throw error so OTPVerification can handle it
       throw error
     }
   }
@@ -79,9 +77,12 @@ const Register = () => {
   const handleResendOTP = async () => {
     try {
       await authAPI.resendOTP(email, 'email_verification')
-      toast.success('OTP sent successfully!')
+      toast.success('New OTP code sent to your email')
     } catch (error) {
-      toast.error(error.response?.data?.message || error.message || 'Failed to resend OTP')
+      const errorMessage = extractErrorMessage(error, {
+        defaultMessage: 'Failed to resend OTP. Please try again.'
+      })
+      toast.error(errorMessage)
       throw error
     }
   }
@@ -124,9 +125,7 @@ const Register = () => {
         <RegisterHeader />
         <RegisterForm 
           onSuccess={handleRegistrationSuccess}
-          onGoogleAuth={handleGoogleAuth}
           isLoading={isLoading}
-          isGoogleLoading={isGoogleLoading}
         />
       </motion.div>
     </div>

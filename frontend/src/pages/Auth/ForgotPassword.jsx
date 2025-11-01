@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import FormSkeleton from '../../components/ui/FormSkeleton';
 import { sendForgotPasswordOTP } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { extractErrorMessage } from '../../utils/errorUtils';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [formError, setFormError] = useState('');
+  const emailRef = useRef(null);
 
   const validate = () => {
     const errs = {};
@@ -22,12 +23,19 @@ const ForgotPassword = () => {
       errs.email = 'Email is invalid';
     }
     setErrors(errs);
+    
+    // Focus on email field if there's an error
+    if (errs.email && emailRef.current) {
+      emailRef.current.focus();
+    }
+    
     return Object.keys(errs).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
+    setErrors({});
     if (!validate()) return;
     setLoading(true);
     try {
@@ -38,17 +46,21 @@ const ForgotPassword = () => {
         navigate('/auth/reset-password', { state: { email } });
       }, 1300);
     } catch (err) {
-      if (err && err.message && err.message.match(/no account/i)) {
-        setFormError('No account exists with that email.');
-      } else {
-        setFormError('Unable to send OTP. Try again or contact support.');
-      }
-    } finally {
       setLoading(false);
+      
+      // Extract error message from backend
+      const errorMessage = extractErrorMessage(err, {
+        defaultMessage: 'Unable to send OTP. Please try again or contact support.'
+      });
+      
+      setFormError(errorMessage);
+      
+      // Focus on email field if submission fails
+      if (emailRef.current) {
+        emailRef.current.focus();
+      }
     }
   };
-
-  if (loading) return <FormSkeleton type="forgot" />;
 
   return (
     <div className="max-w-md mx-auto min-h-[460px] flex flex-col justify-center">
@@ -105,24 +117,44 @@ const ForgotPassword = () => {
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
+                    ref={emailRef}
                     type="email"
                     name="email"
                     autoComplete="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      if (errors.email) {
+                        setErrors(prev => ({ ...prev, email: '' }));
+                      }
+                    }}
                     className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
                     placeholder="Enter your email"
                     disabled={loading}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {errors.email}
+                  </p>
+                )}
               </div>
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Send OTP
+                {loading ? (
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Sending OTP...
+                  </div>
+                ) : (
+                  'Send OTP'
+                )}
               </button>
               <div className="mt-2 text-center">
                 <Link to="/auth/login" className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors duration-200 hover:underline">
