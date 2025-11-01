@@ -33,41 +33,59 @@ type ProductResponse struct {
 }
 
 type CreateProductRequest struct {
-	Name         string  `json:"name" validate:"required,min=1,max=200"`
-	Description  string  `json:"description"`
-	SKU          string  `json:"sku" validate:"required,min=1,max=100"`
-	Price        float64 `json:"price" validate:"required,min=0"`
-	ComparePrice float64 `json:"compare_price" validate:"min=0"`
-	Cost         float64 `json:"cost" validate:"min=0"`
-	Stock        int     `json:"stock" validate:"min=0"`
-	MinStock     int     `json:"min_stock" validate:"min=0"`
-	Weight       float64 `json:"weight" validate:"min=0"`
-	Dimensions   string  `json:"dimensions" validate:"max=100"`
-	Brand        string  `json:"brand" validate:"max=50"`
-	Model        string  `json:"model" validate:"max=100"`
-	Status       string  `json:"status" validate:"oneof=active inactive draft"`
-	IsFeatured   bool    `json:"is_featured"`
-	IsDigital    bool    `json:"is_digital"`
-	CategoryID   uint    `json:"category_id" validate:"required"`
+	Name              string               `json:"name" validate:"required,min=1,max=200"`
+	ShortDescription   string               `json:"short_description"`
+	Description       string               `json:"description"`
+	SKU               string               `json:"sku" validate:"required,min=1,max=100"`
+	Price              float64              `json:"price" validate:"required,min=0"`
+	ComparePrice      float64              `json:"compare_price" validate:"min=0"`
+	CostPrice         float64              `json:"cost_price" validate:"min=0"`
+	StockQuantity     int                  `json:"stock_quantity" validate:"min=0"`
+	LowStockThreshold int                  `json:"low_stock_threshold" validate:"min=0"`
+	Weight            float64              `json:"weight" validate:"min=0"`
+	Length            float64              `json:"length" validate:"min=0"`
+	Width             float64              `json:"width" validate:"min=0"`
+	Height            float64              `json:"height" validate:"min=0"`
+	BrandID           *uint                `json:"brand_id"`
+	IsActive          bool                 `json:"is_active"`
+	IsFeatured        bool                 `json:"is_featured"`
+	IsDigital         bool                 `json:"is_digital"`
+	RequiresShipping  bool                 `json:"requires_shipping"`
+	Taxable           bool                 `json:"taxable"`
+	TrackQuantity     bool                 `json:"track_quantity"`
+	AllowBackorder    bool                 `json:"allow_backorder"`
+	MetaTitle         string               `json:"meta_title" validate:"max=255"`
+	MetaDescription   string               `json:"meta_description"`
+	CategoryID        uint                 `json:"category_id" validate:"required"`
+	Images            []CreateImageRequest `json:"images"`
 }
 
 type UpdateProductRequest struct {
-	Name         *string  `json:"name" validate:"omitempty,min=1,max=200"`
-	Description  *string  `json:"description"`
-	SKU          *string  `json:"sku" validate:"omitempty,min=1,max=100"`
-	Price        *float64 `json:"price" validate:"omitempty,min=0"`
-	ComparePrice *float64 `json:"compare_price" validate:"omitempty,min=0"`
-	Cost         *float64 `json:"cost" validate:"omitempty,min=0"`
-	Stock        *int     `json:"stock" validate:"omitempty,min=0"`
-	MinStock     *int     `json:"min_stock" validate:"omitempty,min=0"`
-	Weight       *float64 `json:"weight" validate:"omitempty,min=0"`
-	Dimensions   *string  `json:"dimensions" validate:"omitempty,max=100"`
-	Brand        *string  `json:"brand" validate:"omitempty,max=50"`
-	Model        *string  `json:"model" validate:"omitempty,max=100"`
-	Status       *string  `json:"status" validate:"omitempty,oneof=active inactive draft"`
-	IsFeatured   *bool    `json:"is_featured"`
-	IsDigital    *bool    `json:"is_digital"`
-	CategoryID   *uint    `json:"category_id" validate:"omitempty"`
+	Name              *string              `json:"name" validate:"omitempty,min=1,max=200"`
+	ShortDescription   *string              `json:"short_description"`
+	Description       *string              `json:"description"`
+	SKU               *string              `json:"sku" validate:"omitempty,min=1,max=100"`
+	Price              *float64             `json:"price" validate:"omitempty,min=0"`
+	ComparePrice      *float64             `json:"compare_price" validate:"omitempty,min=0"`
+	CostPrice         *float64             `json:"cost_price" validate:"omitempty,min=0"`
+	StockQuantity     *int                 `json:"stock_quantity" validate:"omitempty,min=0"`
+	LowStockThreshold *int                 `json:"low_stock_threshold" validate:"omitempty,min=0"`
+	Weight            *float64             `json:"weight" validate:"omitempty,min=0"`
+	Length            *float64             `json:"length" validate:"omitempty,min=0"`
+	Width             *float64             `json:"width" validate:"omitempty,min=0"`
+	Height            *float64             `json:"height" validate:"omitempty,min=0"`
+	BrandID           *uint                `json:"brand_id"`
+	IsActive          *bool                `json:"is_active"`
+	IsFeatured        *bool                `json:"is_featured"`
+	IsDigital         *bool                `json:"is_digital"`
+	RequiresShipping  *bool                `json:"requires_shipping"`
+	Taxable           *bool                `json:"taxable"`
+	TrackQuantity     *bool                `json:"track_quantity"`
+	AllowBackorder    *bool                `json:"allow_backorder"`
+	MetaTitle         *string              `json:"meta_title" validate:"omitempty,max=255"`
+	MetaDescription   *string              `json:"meta_description"`
+	CategoryID        *uint                `json:"category_id" validate:"omitempty"`
+	Images            []CreateImageRequest `json:"images"`
 }
 
 type ProductListRequest struct {
@@ -133,10 +151,29 @@ type UpdateCategoryRequest struct {
 
 // Brand DTOs
 type BrandResponse struct {
-    ID       uint   `json:"id"`
-    Name     string `json:"name"`
-    Slug     string `json:"slug"`
+    ID        uint      `json:"id"`
+    Name      string    `json:"name"`
+    Slug      string    `json:"slug"`
+    IsActive  bool      `json:"is_active"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CreateBrandRequest struct {
+    Name     string `json:"name" validate:"required,min=1,max=150"`
+    Slug     string `json:"slug" validate:"required,min=1,max=150"`
     IsActive bool   `json:"is_active"`
+}
+
+type UpdateBrandRequest struct {
+    Name     *string `json:"name" validate:"omitempty,min=1,max=150"`
+    Slug     *string `json:"slug" validate:"omitempty,min=1,max=150"`
+    IsActive *bool   `json:"is_active"`
+}
+
+type AdminBrandListResponse struct {
+    Brands []BrandResponse `json:"brands"`
+    Total  int64           `json:"total"`
 }
 
 type ProductSuggestResponse struct {
@@ -161,32 +198,55 @@ type ImageResponse struct {
 }
 
 type CreateImageRequest struct {
-	ProductID  uint   `json:"product_id" validate:"required"`
-	URL        string `json:"url" validate:"required,url"`
+	ProductID  uint   `json:"product_id" validate:"omitempty"`
+	URL        string `json:"url" validate:"required"`
 	Alt        string `json:"alt" validate:"max=200"`
 	SortOrder  int    `json:"sort_order" validate:"min=0"`
 	IsPrimary  bool   `json:"is_primary"`
 }
 
-// Variant DTOs
-type VariantResponse struct {
+
+// Upload DTOs
+type UploadResponse struct {
 	ResourceID string    `json:"resource_id"`
-	ProductID  uint      `json:"product_id"`
-	Name       string    `json:"name"`
-	Value      string    `json:"value"`
-	Price      float64   `json:"price"`
-	Stock      int       `json:"stock"`
-	SKU        string    `json:"sku"`
+	URL        string    `json:"url"`
+	Path       string    `json:"path"`
+	Size       int64     `json:"size"`
+	Type       string    `json:"type"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type MultipleUploadResponse struct {
+	Images []UploadResponse `json:"images"`
+	Count  int             `json:"count"`
+}
+
+// Variant DTOs
+type VariantResponse struct {
+	ResourceID    string    `json:"resource_id"`
+	ProductID     uint      `json:"product_id"`
+	Name          string    `json:"name"`
+	SKU           string    `json:"sku"`
+	Price         float64   `json:"price"`
+	ComparePrice  float64   `json:"compare_price"`
+	CostPrice     float64   `json:"cost_price"`
+	StockQuantity int       `json:"stock_quantity"`
+	Weight        float64   `json:"weight"`
+	IsActive      bool      `json:"is_active"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
 type CreateVariantRequest struct {
-	ProductID uint    `json:"product_id" validate:"required"`
-	Name      string  `json:"name" validate:"required,min=1,max=100"`
-	Value     string  `json:"value" validate:"required,min=1,max=100"`
-	Price     float64 `json:"price" validate:"min=0"`
-	Stock     int     `json:"stock" validate:"min=0"`
-	SKU       string  `json:"sku" validate:"max=100"`
+	ProductID     uint    `json:"product_id" validate:"required"`
+	Name          string  `json:"name" validate:"required,min=1,max=255"`
+	SKU           string  `json:"sku" validate:"max=100"`
+	Price         float64 `json:"price" validate:"min=0"`
+	ComparePrice  float64 `json:"compare_price" validate:"min=0"`
+	CostPrice     float64 `json:"cost_price" validate:"min=0"`
+	StockQuantity int     `json:"stock_quantity" validate:"min=0"`
+	Weight        float64 `json:"weight" validate:"min=0"`
+	IsActive      bool    `json:"is_active"`
 }
 
 // Review DTOs

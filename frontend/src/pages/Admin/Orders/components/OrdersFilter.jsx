@@ -1,48 +1,68 @@
 import React from 'react'
 import Card from '../../../../components/ui/Card'
 import Button from '../../../../components/ui/Button'
+import Input from '../../../../components/ui/Input'
 
-const OrdersFilter = () => {
-  const [filters, setFilters] = React.useState({
-    status: '',
-    paymentStatus: '',
-    dateRange: '',
-  })
-
-  const statuses = ['All', 'Pending', 'Shipped', 'Delivered', 'Cancelled']
-  const paymentStatuses = ['All', 'Pending', 'Paid', 'Failed']
-  const dateRanges = ['All', 'Today', 'This Week', 'This Month', 'This Year']
+const OrdersFilter = ({ filters, onFilterChange }) => {
+  const statuses = ['', 'pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']
+  const paymentStatuses = ['', 'pending', 'paid', 'failed', 'refunded']
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }))
-  }
-
-  const clearFilters = () => {
-    setFilters({
-      status: '',
-      paymentStatus: '',
-      dateRange: '',
+    onFilterChange({
+      ...filters,
+      [key]: value,
+      page: 1, // Reset to first page on filter change
     })
   }
 
+  const clearFilters = () => {
+    onFilterChange({
+      status: '',
+      paymentStatus: '',
+      search: '',
+      page: 1,
+      limit: 20,
+    })
+  }
+
+  const hasActiveFilters = filters.status || filters.paymentStatus || filters.search
+
   return (
     <Card className="p-6">
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-sm text-primary-600 hover:text-primary-800"
+            >
+              Clear
+            </button>
+          )}
+        </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Search Order #</label>
+          <Input
+            type="text"
+            placeholder="Search by order number..."
+            value={filters.search || ''}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            className="w-full"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Order Status</label>
           <select
-            value={filters.status}
+            value={filters.status || ''}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
           >
             {statuses.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'All Statuses'}
               </option>
             ))}
           </select>
@@ -51,37 +71,16 @@ const OrdersFilter = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
           <select
-            value={filters.paymentStatus}
+            value={filters.paymentStatus || ''}
             onChange={(e) => handleFilterChange('paymentStatus', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
           >
             {paymentStatuses.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'All Payments'}
               </option>
             ))}
           </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-          <select
-            value={filters.dateRange}
-            onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-          >
-            {dateRanges.map((range) => (
-              <option key={range} value={range}>
-                {range}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="pt-4 border-t border-gray-200">
-          <Button variant="outline" className="w-full" size="sm" onClick={clearFilters}>
-            Clear Filters
-          </Button>
         </div>
       </div>
     </Card>

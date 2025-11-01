@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner'
@@ -8,7 +8,6 @@ import Badge from '../../../components/ui/Badge'
 import Avatar from '../../../components/ui/Avatar'
 import Modal from '../../../components/ui/Modal'
 import { adminAPI } from '../../../services/adminApi'
-import { ordersAPI } from '../../../services/api'
 import { formatPrice } from '../../../utils/format'
 import toast from 'react-hot-toast'
 
@@ -43,8 +42,10 @@ const AdminCustomers = () => {
 
   const fetchCustomerOrders = async (userId) => {
     try {
-      const response = await ordersAPI.getOrders({ user_id: userId })
-      setCustomerOrders(response.orders || response || [])
+      // Use admin orders API to get orders with items for a specific user
+      // Note: user_id should be the numeric ID, not resource_id
+      const response = await adminAPI.orders.getOrders({ user_id: userId, limit: 100 })
+      setCustomerOrders(response.orders || [])
       setShowOrdersModal(true)
     } catch (error) {
       console.error('Failed to fetch customer orders:', error)
@@ -155,18 +156,19 @@ const AdminCustomers = () => {
                       <button
                         onClick={() => {
                           setSelectedCustomer(customer)
-                          fetchCustomerOrders(customer.id || customer.resource_id)
+                          // Use numeric ID for filtering orders by user_id
+                          fetchCustomerOrders(customer.id)
                         }}
-                        className="text-primary-600 hover:text-primary-900 mr-4"
+                        className="text-blue-600 hover:text-blue-900 mr-4"
                       >
                         View Orders
                       </button>
-                      <button
-                        onClick={() => navigate(`/admin/users/${customer.resource_id || customer.id}`)}
-                        className="text-gray-600 hover:text-gray-900"
+                      <Link
+                        to={`/admin/customers/${customer.resource_id || customer.id}`}
+                        className="text-blue-600 hover:text-blue-900"
                       >
                         Details
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))
@@ -191,43 +193,154 @@ const AdminCustomers = () => {
           setCustomerOrders([])
         }}
         title={`Orders for ${selectedCustomer?.first_name || selectedCustomer?.username || 'Customer'}`}
+        size="2xl"
       >
-        <div className="max-h-96 overflow-y-auto">
+        <div className="w-full">
           {customerOrders.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[calc(90vh-180px)] overflow-y-auto pr-2">
               {customerOrders.map((order) => (
-                <div key={order.resource_id || order.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-medium text-gray-900">Order #{order.order_number || order.resource_id}</p>
+                <div key={order.resource_id || order.id} className="border border-gray-200 rounded-xl p-5 sm:p-6 hover:border-blue-200 hover:shadow-md transition-all bg-white">
+                  <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-4 pb-4 border-b border-gray-200">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h4 className="text-lg sm:text-xl font-bold text-gray-900">
+                          {order.order_number || `#${order.resource_id || order.id}`}
+                        </h4>
+                        <Badge className={getOrderStatusColor(order.status || 'pending')}>
+                          {order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : 'Pending'}
+                        </Badge>
+                        {order.payment_status && (
+                          <Badge className={order.payment_status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
+                            {order.payment_status}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500">
                         {order.created_at
-                          ? new Date(order.created_at).toLocaleDateString()
+                          ? new Date(order.created_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
                           : 'N/A'}
                       </p>
                     </div>
-                    <Badge className={getOrderStatusColor(order.status)}>
-                      {order.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Items: {order.items?.length || 0}</p>
-                      {order.items?.map((item, idx) => (
-                        <p key={idx} className="text-sm text-gray-500">
-                          {item.product_name || item.name} x{item.quantity}
-                        </p>
-                      ))}
+                    <div className="text-left lg:text-right flex-shrink-0">
+                      <p className="text-sm text-gray-500 mb-1">Total Amount</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {formatPrice(order.total || order.total_amount || 0)}
+                      </p>
                     </div>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {formatPrice(order.total_amount || order.total || 0)}
-                    </p>
+                  </div>
+                  
+                  {/* Two-column layout for wider modal */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Order Items Column */}
+                    <div className="lg:pr-4">
+                      {order.items && order.items.length > 0 ? (
+                        <div>
+                          <h5 className="text-sm font-semibold text-gray-700 mb-3">Order Items ({order.items.length})</h5>
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                            {order.items.map((item, idx) => (
+                              <div
+                                key={item.resource_id || idx}
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                              >
+                                <div className="flex-1 min-w-0 mr-3">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.product?.name || item.product_name || 'Product'}
+                                  </p>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    {item.product?.sku && (
+                                      <span className="text-xs text-gray-500">SKU: {item.product.sku}</span>
+                                    )}
+                                    <span className="text-xs text-gray-500">Qty: {item.quantity || 0}</span>
+                                    <span className="text-xs text-gray-500">
+                                      @ {formatPrice(item.price || 0)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                                    {formatPrice(item.total || (item.price || 0) * (item.quantity || 0))}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-sm text-gray-500">No items found for this order</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Order Summary Column */}
+                    <div className="lg:pl-4 border-l-0 lg:border-l border-gray-200 lg:pl-6">
+                      <h5 className="text-sm font-semibold text-gray-700 mb-3">Order Summary</h5>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-gray-600">Subtotal</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatPrice(order.subtotal || 0)}
+                          </p>
+                        </div>
+                        {order.tax_amount > 0 && (
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm text-gray-600">Tax</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {formatPrice(order.tax_amount || 0)}
+                            </p>
+                          </div>
+                        )}
+                        {order.shipping_cost > 0 && (
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm text-gray-600">Shipping</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {formatPrice(order.shipping_cost || 0)}
+                            </p>
+                          </div>
+                        )}
+                        {order.discount_amount > 0 && (
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm text-gray-600">Discount</p>
+                            <p className="text-sm font-semibold text-green-600">
+                              -{formatPrice(order.discount_amount || 0)}
+                            </p>
+                          </div>
+                        )}
+                        <div className="pt-3 border-t border-gray-200 flex justify-between items-center">
+                          <p className="text-base font-semibold text-gray-900">Total</p>
+                          <p className="text-lg font-bold text-gray-900">
+                            {formatPrice(order.total || order.total_amount || 0)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {order.notes && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-xs text-gray-500 mb-1">Notes</p>
+                          <p className="text-sm text-gray-700 break-words">{order.notes}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500 py-8">No orders found for this customer</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              <p className="text-gray-500 font-medium">No orders found</p>
+              <p className="text-sm text-gray-400 mt-1">This customer hasn't placed any orders yet</p>
+            </div>
           )}
         </div>
       </Modal>

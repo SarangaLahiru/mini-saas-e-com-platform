@@ -94,6 +94,14 @@ func (s *Server) setupRoutes() {
 	cartHandler := handlers.NewCartHandler(s.db.DB)
 	wishlistHandler := handlers.NewWishlistHandler(s.db.DB)
 	reviewHandler := handlers.NewReviewHandler(reviewUsecase, productRepo)
+	
+	// Initialize upload handler
+	uploadDir := "./uploads"
+	baseURL := fmt.Sprintf("http://%s:%s", s.config.Server.Host, s.config.Server.Port)
+	if s.config.Server.Host == "localhost" || s.config.Server.Host == "127.0.0.1" {
+		baseURL = fmt.Sprintf("http://localhost:%s", s.config.Server.Port)
+	}
+	uploadHandler := handlers.NewUploadHandler(uploadDir, baseURL)
 
 	// API routes
 	api := s.router.Group("/api/v1")
@@ -173,10 +181,12 @@ func (s *Server) setupRoutes() {
 
 			// Initialize admin handlers
 			adminAnalyticsHandler := handlers.NewAdminAnalyticsHandler(s.db)
-			adminProductsHandler := handlers.NewAdminProductsHandler(productUsecase, productRepo, categoryRepo)
+			adminProductsHandler := handlers.NewAdminProductsHandler(productUsecase, productRepo, categoryRepo, s.db.DB)
 			adminOrdersHandler := handlers.NewAdminOrdersHandler(orderRepo)
 			adminUsersHandler := handlers.NewAdminUsersHandler(userRepo, orderRepo)
 			adminCategoriesHandler := handlers.NewAdminCategoriesHandler(categoryRepo)
+			brandRepo := repository.NewBrandRepository(s.db.DB)
+			adminBrandsHandler := handlers.NewAdminBrandsHandler(brandRepo)
 
 			// Analytics routes
 			analytics := admin.Group("/analytics")
@@ -207,6 +217,7 @@ func (s *Server) setupRoutes() {
 			users := admin.Group("/users")
 			{
 				users.GET("", adminUsersHandler.ListUsers)
+				users.GET("/:id", adminUsersHandler.GetUser)
 				users.PUT("/:id", adminUsersHandler.UpdateUser)
 			}
 
@@ -218,7 +229,28 @@ func (s *Server) setupRoutes() {
 				categories.PUT("/:id", adminCategoriesHandler.UpdateCategory)
 				categories.DELETE("/:id", adminCategoriesHandler.DeleteCategory)
 			}
+
+			// Brands management routes
+			brands := admin.Group("/brands")
+			{
+				brands.GET("", adminBrandsHandler.ListBrands)
+				brands.POST("", adminBrandsHandler.CreateBrand)
+				brands.PUT("/:id", adminBrandsHandler.UpdateBrand)
+				brands.DELETE("/:id", adminBrandsHandler.DeleteBrand)
+			}
+
+			// Upload routes
+			upload := admin.Group("/upload")
+			{
+				upload.POST("/image", uploadHandler.UploadImage)
+				upload.POST("/images", uploadHandler.UploadMultipleImages)
+				upload.DELETE("/images/:id", uploadHandler.DeleteImage)
+			}
 		}
+
+		// Static file serving for uploads - serve from root uploads directory
+		// This will serve files from ./uploads/product/, ./uploads/categories/, etc.
+		s.router.StaticFS("/uploads", gin.Dir("./uploads", true))
 
 		// Order routes (Protected)
 		orders := api.Group("/orders")

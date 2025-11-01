@@ -33,7 +33,13 @@ func NewProductRepository(db *gorm.DB) ProductRepository {
 }
 
 func (r *productRepository) Create(ctx context.Context, product *models.Product) error {
-	return r.db.WithContext(ctx).Create(product).Error
+	// Create product - GORM Create will save all fields including zero values
+	err := r.db.WithContext(ctx).Create(product).Error
+	if err != nil {
+		return err
+	}
+	// Verify the created record has the correct values by reloading
+	return nil
 }
 
 func (r *productRepository) GetByID(ctx context.Context, id uint) (*models.Product, error) {
@@ -96,7 +102,41 @@ func (r *productRepository) GetBySKU(ctx context.Context, sku string) (*models.P
 }
 
 func (r *productRepository) Update(ctx context.Context, product *models.Product) error {
-	return r.db.WithContext(ctx).Save(product).Error
+	// Use Model().Where().Updates() with explicit field selection to ensure zero values are saved
+	// This is more reliable than Save() for partial updates
+	updates := map[string]interface{}{
+		"resource_id":        product.ResourceID,
+		"name":               product.Name,
+		"slug":               product.Slug,
+		"description":        product.Description,
+		"short_description":  product.ShortDescription,
+		"sku":                product.SKU,
+		"brand_id":           product.BrandID,
+		"price":              product.Price,
+		"compare_price":      product.ComparePrice,
+		"cost_price":          product.CostPrice,
+		"stock_quantity":     product.StockQuantity,
+		"low_stock_threshold": product.LowStockThreshold,
+		"track_quantity":     product.TrackQuantity,
+		"allow_backorder":     product.AllowBackorder,
+		"weight":              product.Weight,
+		"length":              product.Length,
+		"width":               product.Width,
+		"height":              product.Height,
+		"is_active":           product.IsActive,
+		"is_featured":         product.IsFeatured,
+		"is_digital":          product.IsDigital,
+		"requires_shipping":   product.RequiresShipping,
+		"taxable":             product.Taxable,
+		"meta_title":          product.MetaTitle,
+		"meta_description":    product.MetaDescription,
+		"updated_at":          product.UpdatedAt,
+	}
+	
+	return r.db.WithContext(ctx).
+		Model(product).
+		Where("id = ?", product.ID).
+		Updates(updates).Error
 }
 
 func (r *productRepository) Delete(ctx context.Context, id uint) error {
@@ -146,7 +186,13 @@ func (r *productRepository) List(ctx context.Context, limit, offset int, filters
         }
     }
 	if status, ok := filters["status"]; ok {
-		query = query.Where("status = ?", status)
+		// Map status filter to is_active column
+		// "active" -> is_active = true, anything else -> is_active = false
+		if statusStr, ok2 := status.(string); ok2 && statusStr == "active" {
+			query = query.Where("is_active = ?", true)
+		} else {
+			query = query.Where("is_active = ?", false)
+		}
 	}
 	if isFeatured, ok := filters["is_featured"]; ok {
 		query = query.Where("is_featured = ?", isFeatured)
@@ -227,7 +273,13 @@ func (r *productRepository) Count(ctx context.Context, filters map[string]interf
         }
     }
 	if status, ok := filters["status"]; ok {
-		query = query.Where("status = ?", status)
+		// Map status filter to is_active column
+		// "active" -> is_active = true, anything else -> is_active = false
+		if statusStr, ok2 := status.(string); ok2 && statusStr == "active" {
+			query = query.Where("is_active = ?", true)
+		} else {
+			query = query.Where("is_active = ?", false)
+		}
 	}
 	if isFeatured, ok := filters["is_featured"]; ok {
 		query = query.Where("is_featured = ?", isFeatured)

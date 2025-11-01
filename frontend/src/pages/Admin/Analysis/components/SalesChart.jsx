@@ -1,8 +1,18 @@
-import React from 'react'
-import { motion } from 'framer-motion'
+import React, { useMemo } from 'react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts'
 import { formatPrice } from '../../../../utils/format'
+import { format, parseISO } from 'date-fns'
 
-const SalesChart = ({ salesData = [] }) => {
+const SalesChart = ({ salesData = [], viewType = 'daily' }) => {
   if (!salesData || salesData.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
@@ -16,140 +26,125 @@ const SalesChart = ({ salesData = [] }) => {
     )
   }
 
-  // Calculate max value for scaling
-  const maxSales = Math.max(...salesData.map(d => d.sales || 0), 1)
-  const chartHeight = 200
-  const chartWidth = 100
-  const padding = { top: 20, right: 10, bottom: 30, left: 40 }
+  // Process data for chart
+  const chartData = useMemo(() => {
+    return salesData.map(item => {
+      const date = item.date || item.Date || ''
+      const sales = item.sales || item.Sales || 0
+      const orders = item.orders || item.Orders || 0
+      
+      // Format date based on view type
+      let formattedDate = date
+      try {
+        const parsedDate = parseISO(date)
+        if (!isNaN(parsedDate.getTime())) {
+          switch (viewType) {
+            case 'daily':
+              formattedDate = format(parsedDate, 'MMM dd')
+              break
+            case 'weekly':
+              formattedDate = format(parsedDate, 'MMM dd, yyyy')
+              break
+            case 'monthly':
+              formattedDate = format(parsedDate, 'MMM yyyy')
+              break
+            case 'yearly':
+              formattedDate = format(parsedDate, 'yyyy')
+              break
+            default:
+              formattedDate = format(parsedDate, 'MMM dd')
+          }
+        }
+      } catch (e) {
+        // Keep original date if parsing fails
+      }
 
-  // Format dates
-  const formatDate = (dateStr) => {
-    try {
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    } catch {
-      return dateStr
+      return {
+        date: formattedDate,
+        fullDate: date,
+        sales: Number(sales.toFixed(2)),
+        orders: Number(orders),
+        salesFormatted: formatPrice(sales)
+      }
+    })
+  }, [salesData, viewType])
+
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <div className="bg-gray-900 text-white p-3 rounded-lg shadow-lg border border-gray-700">
+          <p className="text-sm font-semibold mb-1">{data.fullDate}</p>
+          <p className="text-sm text-blue-300">
+            <span className="font-medium">Sales:</span> {data.salesFormatted}
+          </p>
+          <p className="text-sm text-gray-300">
+            <span className="font-medium">Orders:</span> {data.orders}
+          </p>
+        </div>
+      )
     }
+    return null
   }
 
-  // Calculate points for line
-  const points = salesData.map((item, index) => {
-    const x = ((index / (salesData.length - 1 || 1)) * chartWidth) + padding.left
-    const y = chartHeight + padding.top - ((item.sales || 0) / maxSales * chartHeight)
-    return { x, y, ...item }
-  })
-
-  // Create path for line
-  const linePath = points.map((p, i) => 
-    `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
-  ).join(' ')
-
-  // Create area path (line + bottom closure)
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${chartHeight + padding.top} L ${points[0].x} ${chartHeight + padding.top} Z`
+  // Format Y-axis values
+  const formatYAxis = (value) => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`
+    }
+    if (value >= 1000) {
+      return `$${(value / 1000).toFixed(1)}k`
+    }
+    return `$${value.toFixed(0)}`
+  }
 
   return (
-    <div className="relative w-full">
-      <svg 
-        viewBox={`0 0 ${100 + padding.left + padding.right} ${chartHeight + padding.top + padding.bottom}`}
-        className="w-full h-auto"
-        preserveAspectRatio="none"
-      >
-        {/* Grid lines */}
-        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-          const y = chartHeight + padding.top - (ratio * chartHeight)
-          return (
-            <g key={ratio}>
-              <line
-                x1={padding.left}
-                y1={y}
-                x2={100 + padding.left}
-                y2={y}
-                stroke="#e5e7eb"
-                strokeWidth="0.5"
-                strokeDasharray="2 2"
-              />
-              <text
-                x={padding.left - 5}
-                y={y + 2}
-                fontSize="8"
-                fill="#6b7280"
-                textAnchor="end"
-              >
-                {formatPrice(maxSales * ratio)}
-              </text>
-            </g>
-          )
-        })}
-
-        {/* Area fill */}
-        <motion.path
-          d={areaPath}
-          fill="url(#salesGradient)"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
-          transition={{ duration: 0.5 }}
-        />
-
-        {/* Line */}
-        <motion.path
-          d={linePath}
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 1, ease: "easeInOut" }}
-        />
-
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id="salesGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
-          </linearGradient>
-        </defs>
-
-        {/* Data points and tooltips */}
-        {points.map((point, index) => (
-          <g key={index}>
-            <motion.circle
-              cx={point.x}
-              cy={point.y}
-              r="3"
-              fill="#3b82f6"
-              stroke="#fff"
-              strokeWidth="2"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: index * 0.05, type: "spring" }}
-            />
-            {/* Date labels */}
-            <text
-              x={point.x}
-              y={chartHeight + padding.top + 15}
-              fontSize="7"
-              fill="#6b7280"
-              textAnchor="middle"
-              transform={`rotate(-45 ${point.x} ${chartHeight + padding.top + 15})`}
-            >
-              {formatDate(point.date)}
-            </text>
-          </g>
-        ))}
-      </svg>
-
-      {/* Legend */}
-      <div className="mt-4 flex items-center justify-center space-x-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-          <span className="text-xs text-gray-600">Daily Sales</span>
-        </div>
-      </div>
+    <div className="w-full">
+      <ResponsiveContainer width="100%" height={350}>
+        <AreaChart
+          data={chartData}
+          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+        >
+          <defs>
+            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis
+            dataKey="date"
+            stroke="#6b7280"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            stroke="#6b7280"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={formatYAxis}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="circle"
+          />
+          <Area
+            type="monotone"
+            dataKey="sales"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#colorSales)"
+            name="Sales"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   )
 }
 
 export default SalesChart
-

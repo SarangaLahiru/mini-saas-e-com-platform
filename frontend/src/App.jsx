@@ -31,6 +31,7 @@ const AdminOrders = React.lazy(() => import('./pages/Admin/Orders'))
 const AdminUsers = React.lazy(() => import('./pages/Admin/Users'))
 const AdminAnalysis = React.lazy(() => import('./pages/Admin/Analysis'))
 const AdminCustomers = React.lazy(() => import('./pages/Admin/Customers'))
+const AdminCustomerDetail = React.lazy(() => import('./pages/Admin/Customers/components/CustomerDetail'))
 const AdminCategories = React.lazy(() => import('./pages/Admin/Categories'))
 const NotFound = React.lazy(() => import('./pages/NotFound'))
 import ForgotPassword from './pages/Auth/ForgotPassword';
@@ -65,15 +66,9 @@ function AppContent() {
   // Check if we're coming from Google auth callback to show consistent loading
   const isFromGoogleAuth = sessionStorage.getItem('google_auth_redirecting') === 'true'
   
-  // Only show skeleton on initial app load, not during auth operations
-  // Skip skeleton on auth routes (they handle their own loading states)
-  // Also skip if coming from Google auth (show ProcessingLoader overlay instead)
-  if (isLoading && !isAuthRoute && !isFromGoogleAuth) {
-    return <PageSkeleton.FullPage showHeader={!isAdminRoute} showFooter={!isAdminRoute} />
-  }
-  
   // If coming from Google auth, show ProcessingLoader overlay until page loads
   // This ensures smooth transition without skeleton flash
+  // IMPORTANT: All hooks must be called before any early returns
   useEffect(() => {
     if (isFromGoogleAuth && isLoading) {
       document.body.style.overflow = 'hidden'
@@ -84,6 +79,20 @@ function AppContent() {
       document.body.style.overflow = ''
     }
   }, [isFromGoogleAuth, isLoading])
+  
+  // Clear the flag once loading completes
+  useEffect(() => {
+    if (isFromGoogleAuth && !isLoading) {
+      sessionStorage.removeItem('google_auth_redirecting')
+    }
+  }, [isFromGoogleAuth, isLoading])
+  
+  // Only show skeleton on initial app load, not during auth operations
+  // Skip skeleton on auth routes (they handle their own loading states)
+  // Also skip if coming from Google auth (show ProcessingLoader overlay instead)
+  if (isLoading && !isAuthRoute && !isFromGoogleAuth) {
+    return <PageSkeleton.FullPage showHeader={!isAdminRoute} showFooter={!isAdminRoute} />
+  }
   
   if (isFromGoogleAuth && isLoading) {
     return (
@@ -120,11 +129,6 @@ function AppContent() {
         </motion.div>
       </div>
     )
-  }
-  
-  // Clear the flag once loading completes
-  if (isFromGoogleAuth && !isLoading) {
-    sessionStorage.removeItem('google_auth_redirecting')
   }
 
   return (
@@ -402,6 +406,22 @@ function AppContent() {
                             transition={pageTransition}
                           >
                             <AdminCustomers />
+                          </motion.div>
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="customers/:id"
+                      element={
+                        <Suspense fallback={<PageSkeleton.Admin />}>
+                          <motion.div
+                            initial="initial"
+                            animate="in"
+                            exit="out"
+                            variants={pageVariants}
+                            transition={pageTransition}
+                          >
+                            <AdminCustomerDetail />
                           </motion.div>
                         </Suspense>
                       }

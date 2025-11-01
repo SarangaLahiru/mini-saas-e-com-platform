@@ -101,6 +101,7 @@ type ProductSummaryResponse struct {
 	Name       string  `json:"name"`
 	SKU        string  `json:"sku"`
 	Price      float64 `json:"price"`
+	Image      string  `json:"image,omitempty"` // Primary product image URL
 }
 
 

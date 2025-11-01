@@ -85,13 +85,14 @@ type AdminProductListResponse struct {
 // ============================================
 
 type AdminOrderListRequest struct {
-	Page     int    `form:"page" binding:"omitempty,min=1"`
-	Limit    int    `form:"limit" binding:"omitempty,min=1,max=100"`
-	Status   string `form:"status" binding:"omitempty,oneof=pending processing shipped delivered cancelled refunded"`
-	UserID   uint   `form:"user_id"`
-	Search   string `form:"search"`
-	SortBy   string `form:"sort_by" binding:"omitempty,oneof=created_at total_amount status"`
-	SortOrder string `form:"sort_order" binding:"omitempty,oneof=asc desc"`
+	Page          int    `form:"page" binding:"omitempty,min=1"`
+	Limit         int    `form:"limit" binding:"omitempty,min=1,max=100"`
+	Status        string `form:"status" binding:"omitempty,oneof=pending processing shipped delivered cancelled refunded"`
+	PaymentStatus string `form:"payment_status" binding:"omitempty,oneof=pending paid failed refunded"`
+	UserID        uint   `form:"user_id"`
+	Search        string `form:"search"`
+	SortBy        string `form:"sort_by" binding:"omitempty,oneof=created_at total_amount status"`
+	SortOrder     string `form:"sort_order" binding:"omitempty,oneof=asc desc"`
 }
 
 type AdminOrderListResponse struct {
@@ -105,6 +106,7 @@ type AdminOrderDetailResponse struct {
 	OrderResponse
 	Customer UserSummary        `json:"customer"`
 	Items    []OrderItemResponse `json:"items"`
+	Payments []PaymentResponse  `json:"payments,omitempty"`
 }
 
 type UpdateOrderStatusRequest struct {
@@ -158,6 +160,11 @@ type UpdateUserRequest struct {
 	Phone     *string `json:"phone" binding:"omitempty,max=20"`
 	IsActive  *bool   `json:"is_active"`
 	IsAdmin   *bool   `json:"is_admin"`
+}
+
+type AdminUserDetailResponse struct {
+	User   AdminUserResponse          `json:"user"`
+	Orders []AdminOrderDetailResponse `json:"orders"`
 }
 
 // ============================================

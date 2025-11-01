@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"electronics-store/internal/dto"
 	"electronics-store/internal/domain/models"
@@ -17,17 +20,20 @@ type AdminProductsHandler struct {
 	productUsecase usecase.ProductUsecase
 	productRepo    repository.ProductRepository
 	categoryRepo   repository.CategoryRepository
+	db            *gorm.DB
 }
 
 func NewAdminProductsHandler(
 	productUsecase usecase.ProductUsecase,
 	productRepo repository.ProductRepository,
 	categoryRepo repository.CategoryRepository,
+	db *gorm.DB,
 ) *AdminProductsHandler {
 	return &AdminProductsHandler{
 		productUsecase: productUsecase,
 		productRepo:    productRepo,
 		categoryRepo:   categoryRepo,
+		db:            db,
 	}
 }
 
@@ -127,9 +133,9 @@ func (h *AdminProductsHandler) ListProducts(c *gin.Context) {
 			}
 		}
 
-		// Determine status
+		// Determine status based on is_active
 		status := "active"
-		if !product.IsFeatured && product.Stock == 0 {
+		if !product.IsActive {
 			status = "inactive"
 		}
 
@@ -141,9 +147,9 @@ func (h *AdminProductsHandler) ListProducts(c *gin.Context) {
 			SKU:          product.SKU,
 			Price:        product.Price,
 			ComparePrice: product.ComparePrice,
-			Cost:         product.Cost,
-			Stock:        product.Stock,
-			MinStock:     product.MinStock,
+			Cost:         product.CostPrice,
+			Stock:        product.StockQuantity,
+			MinStock:     product.LowStockThreshold,
 			Weight:       product.Weight,
 			Dimensions:   product.Dimensions,
 			Brand:        product.Brand,
@@ -188,6 +194,20 @@ func (h *AdminProductsHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
+	// Debug: Log request data
+	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] CreateProduct Request: Name=%s, SKU=%s, Price=%f, StockQuantity=%d, LowStockThreshold=%d, CategoryID=%d, BrandID=%v, IsActive=%v\n", 
+		req.Name, req.SKU, req.Price, req.StockQuantity, req.LowStockThreshold, req.CategoryID, req.BrandID, req.IsActive)))
+	
+	// Debug: Log images received
+	if len(req.Images) > 0 {
+		gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Received %d images for product creation\n", len(req.Images))))
+		for i, img := range req.Images {
+			gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Image %d: URL=%s, Alt=%s, SortOrder=%d, IsPrimary=%v\n", i, img.URL, img.Alt, img.SortOrder, img.IsPrimary)))
+		}
+	} else {
+		gin.DefaultWriter.Write([]byte("[DEBUG] No images received in request\n"))
+	}
+
 	ctx := c.Request.Context()
 
 	// Check if SKU already exists
@@ -217,29 +237,45 @@ func (h *AdminProductsHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
+	// Generate slug from name
+	slug := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(req.Name), " ", "-"))
+	
 	// Create product model
 	product := &models.Product{
-		ResourceID:   uuid.New().String(),
-		Name:         req.Name,
-		Description:  req.Description,
-		SKU:          req.SKU,
-		Price:        req.Price,
-		ComparePrice: req.ComparePrice,
-		Cost:         req.Cost,
-		Stock:        req.Stock,
-		MinStock:     req.MinStock,
-		Weight:       req.Weight,
-		Dimensions:   req.Dimensions,
-		Brand:        req.Brand,
-		Model:        req.Model,
-		IsFeatured:   req.IsFeatured,
-		IsDigital:    req.IsDigital,
+		ResourceID:        uuid.New().String(),
+		Name:              req.Name,
+		Slug:              slug,
+		Description:       req.Description,
+		ShortDescription:  req.ShortDescription,
+		SKU:               req.SKU,
+		BrandID:           req.BrandID,
+		Price:             req.Price,
+		ComparePrice:      req.ComparePrice,
+		CostPrice:         req.CostPrice,
+		StockQuantity:     req.StockQuantity,
+		LowStockThreshold: req.LowStockThreshold,
+		TrackQuantity:     req.TrackQuantity,
+		AllowBackorder:    req.AllowBackorder,
+		Weight:            req.Weight,
+		Length:            req.Length,
+		Width:             req.Width,
+		Height:            req.Height,
+		IsActive:          req.IsActive,
+		IsFeatured:        req.IsFeatured,
+		IsDigital:         req.IsDigital,
+		RequiresShipping:  req.RequiresShipping,
+		Taxable:           req.Taxable,
+		MetaTitle:         req.MetaTitle,
+		MetaDescription:   req.MetaDescription,
 	}
 
-	// Set active status based on Status field
-	if req.Status == "active" {
-		product.IsFeatured = true
-	}
+	// Set computed fields for backward compatibility
+	product.Stock = product.StockQuantity
+	product.MinStock = product.LowStockThreshold
+
+	// Debug: Log product before save
+	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Product before save: StockQuantity=%d, LowStockThreshold=%d, CostPrice=%f, IsActive=%v\n", 
+		product.StockQuantity, product.LowStockThreshold, product.CostPrice, product.IsActive)))
 
 	// Create product
 	if err := h.productRepo.Create(ctx, product); err != nil {
@@ -264,7 +300,85 @@ func (h *AdminProductsHandler) CreateProduct(c *gin.Context) {
 		}
 	}
 
-	// Fetch created product with relationships
+	// Save images if provided
+	if len(req.Images) > 0 {
+		gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Processing %d images for product ID: %d\n", len(req.Images), product.ID)))
+		
+		// First, ensure only one primary image
+		hasPrimary := false
+		for i := range req.Images {
+			if req.Images[i].IsPrimary {
+				if hasPrimary {
+					req.Images[i].IsPrimary = false
+				}
+				hasPrimary = true
+			}
+		}
+		// If no primary, make first one primary
+		if !hasPrimary && len(req.Images) > 0 {
+			req.Images[0].IsPrimary = true
+		}
+
+		// Create image records
+		savedCount := 0
+		for idx, imgReq := range req.Images {
+			// Skip if URL is empty
+			if strings.TrimSpace(imgReq.URL) == "" {
+				gin.DefaultWriter.Write([]byte(fmt.Sprintf("[WARN] Skipping image %d: empty URL\n", idx)))
+				continue
+			}
+			
+			// Prepare alt text - use provided alt or extract from URL
+			altText := strings.TrimSpace(imgReq.Alt)
+			if altText == "" {
+				// Extract filename from URL as fallback
+				if lastSlash := len(imgReq.URL); lastSlash > 0 {
+					// Try to extract a meaningful name from URL
+					parts := strings.Split(imgReq.URL, "/")
+					if len(parts) > 0 {
+						filename := parts[len(parts)-1]
+						// Remove extension and use as alt
+						if dotIdx := strings.LastIndex(filename, "."); dotIdx > 0 {
+							filename = filename[:dotIdx]
+						}
+						altText = filename
+					}
+				}
+				if altText == "" {
+					altText = fmt.Sprintf("Product image %d", idx+1)
+				}
+			}
+			
+			image := &models.Image{
+				ResourceID: uuid.New().String(),
+				ProductID:  product.ID,
+				URL:        strings.TrimSpace(imgReq.URL), // Trim whitespace
+				Alt:        altText,
+				SortOrder:  imgReq.SortOrder,
+				IsPrimary:  imgReq.IsPrimary,
+				CreatedAt:  time.Now(),
+			}
+			
+			gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Creating image record: ResourceID=%s, ProductID=%d, URL=%s, Alt=%s, SortOrder=%d, IsPrimary=%v\n", 
+				image.ResourceID, image.ProductID, image.URL, image.Alt, image.SortOrder, image.IsPrimary)))
+			
+			if err := h.db.WithContext(ctx).Create(image).Error; err != nil {
+				gin.DefaultWriter.Write([]byte(fmt.Sprintf("[ERROR] Failed to save image %d: %v\n", idx, err)))
+				c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+					Error:   "Failed to save image",
+					Message: fmt.Sprintf("Failed to save image %d: %v", idx, err),
+				})
+				return
+			}
+			savedCount++
+			gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Successfully saved image %d\n", idx)))
+		}
+		gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Successfully saved %d/%d images\n", savedCount, len(req.Images))))
+	} else {
+		gin.DefaultWriter.Write([]byte("[DEBUG] No images to save\n"))
+	}
+
+	// Fetch created product with relationships (this will trigger AfterFind hook)
 	createdProduct, err := h.productRepo.GetByID(ctx, product.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
@@ -272,6 +386,14 @@ func (h *AdminProductsHandler) CreateProduct(c *gin.Context) {
 			Message: err.Error(),
 		})
 		return
+	}
+	
+	// Debug: Verify saved data from database
+	if createdProduct != nil {
+		gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Created product from DB: ID=%d, StockQuantity=%d, LowStockThreshold=%d, CostPrice=%f, IsActive=%v\n", 
+			createdProduct.ID, createdProduct.StockQuantity, createdProduct.LowStockThreshold, createdProduct.CostPrice, createdProduct.IsActive)))
+	} else {
+		gin.DefaultWriter.Write([]byte("[ERROR] Created product is nil after fetch\n"))
 	}
 
 	// Convert to response
@@ -305,10 +427,17 @@ func (h *AdminProductsHandler) CreateProduct(c *gin.Context) {
 		}
 	}
 
+	// Set computed fields for response
+	createdProduct.Stock = createdProduct.StockQuantity
+	createdProduct.MinStock = createdProduct.LowStockThreshold
+	if createdProduct.BrandRef != nil {
+		createdProduct.Brand = createdProduct.BrandRef.Name
+	}
 	status := "active"
-	if !createdProduct.IsFeatured {
+	if !createdProduct.IsActive {
 		status = "inactive"
 	}
+	createdProduct.Status = status
 
 	c.JSON(http.StatusCreated, dto.ProductResponse{
 		ID:           createdProduct.ID,
@@ -318,9 +447,9 @@ func (h *AdminProductsHandler) CreateProduct(c *gin.Context) {
 		SKU:          createdProduct.SKU,
 		Price:        createdProduct.Price,
 		ComparePrice: createdProduct.ComparePrice,
-		Cost:         createdProduct.Cost,
-		Stock:        createdProduct.Stock,
-		MinStock:     createdProduct.MinStock,
+		Cost:         createdProduct.CostPrice,
+		Stock:        createdProduct.StockQuantity,
+		MinStock:     createdProduct.LowStockThreshold,
 		Weight:       createdProduct.Weight,
 		Dimensions:   createdProduct.Dimensions,
 		Brand:        createdProduct.Brand,
@@ -368,6 +497,12 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	// Debug: Log update request
+	if req.StockQuantity != nil {
+		gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] UpdateProduct Request: StockQuantity=%d, LowStockThreshold=%v\n", 
+			*req.StockQuantity, req.LowStockThreshold)))
+	}
+
 	ctx := c.Request.Context()
 
 	// Get existing product
@@ -383,6 +518,11 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 	// Update fields
 	if req.Name != nil {
 		product.Name = *req.Name
+		// Update slug when name changes
+		product.Slug = strings.ToLower(strings.ReplaceAll(strings.TrimSpace(*req.Name), " ", "-"))
+	}
+	if req.ShortDescription != nil {
+		product.ShortDescription = *req.ShortDescription
 	}
 	if req.Description != nil {
 		product.Description = *req.Description
@@ -412,34 +552,34 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 	if req.ComparePrice != nil {
 		product.ComparePrice = *req.ComparePrice
 	}
-	if req.Cost != nil {
-		product.Cost = *req.Cost
+	if req.CostPrice != nil {
+		product.CostPrice = *req.CostPrice
 	}
-	if req.Stock != nil {
-		product.Stock = *req.Stock
+	if req.StockQuantity != nil {
+		product.StockQuantity = *req.StockQuantity
+		product.Stock = *req.StockQuantity // Update alias
 	}
-	if req.MinStock != nil {
-		product.MinStock = *req.MinStock
+	if req.LowStockThreshold != nil {
+		product.LowStockThreshold = *req.LowStockThreshold
+		product.MinStock = *req.LowStockThreshold // Update alias
 	}
 	if req.Weight != nil {
 		product.Weight = *req.Weight
 	}
-	if req.Dimensions != nil {
-		product.Dimensions = *req.Dimensions
+	if req.Length != nil {
+		product.Length = *req.Length
 	}
-	if req.Brand != nil {
-		product.Brand = *req.Brand
+	if req.Width != nil {
+		product.Width = *req.Width
 	}
-	if req.Model != nil {
-		product.Model = *req.Model
+	if req.Height != nil {
+		product.Height = *req.Height
 	}
-	if req.Status != nil {
-		// Map status to is_featured
-		if *req.Status == "active" {
-			product.IsFeatured = true
-		} else {
-			product.IsFeatured = false
-		}
+	if req.BrandID != nil {
+		product.BrandID = req.BrandID
+	}
+	if req.IsActive != nil {
+		product.IsActive = *req.IsActive
 	}
 	if req.IsFeatured != nil {
 		product.IsFeatured = *req.IsFeatured
@@ -447,6 +587,38 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 	if req.IsDigital != nil {
 		product.IsDigital = *req.IsDigital
 	}
+	if req.RequiresShipping != nil {
+		product.RequiresShipping = *req.RequiresShipping
+	}
+	if req.Taxable != nil {
+		product.Taxable = *req.Taxable
+	}
+	if req.TrackQuantity != nil {
+		product.TrackQuantity = *req.TrackQuantity
+	}
+	if req.AllowBackorder != nil {
+		product.AllowBackorder = *req.AllowBackorder
+	}
+	if req.MetaTitle != nil {
+		product.MetaTitle = *req.MetaTitle
+	}
+	if req.MetaDescription != nil {
+		product.MetaDescription = *req.MetaDescription
+	}
+	// Debug: Log product before update
+	gin.DefaultWriter.Write([]byte(fmt.Sprintf("[DEBUG] Product before update: ID=%d, StockQuantity=%d, LowStockThreshold=%d, CostPrice=%f\n", 
+		product.ID, product.StockQuantity, product.LowStockThreshold, product.CostPrice)))
+
+	// Update product FIRST (before category association, to preserve all field changes)
+	if err := h.productRepo.Update(ctx, product); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Failed to update product",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Handle category association AFTER saving product fields
 	if req.CategoryID != nil {
 		// Verify category exists
 		category, err := h.categoryRepo.GetByID(ctx, *req.CategoryID)
@@ -457,18 +629,61 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 			})
 			return
 		}
-		product.CategoryID = *req.CategoryID
-		// Update category association
-		// Note: You might need to implement ReplaceCategories method
+		// Reload product to get fresh state for association update
+		product, _ = h.productRepo.GetByID(ctx, product.ID)
+		if product != nil {
+			var cat models.Category
+			cat.ID = category.ID
+			product.Categories = []models.Category{cat}
+			// Save category association
+			h.productRepo.Update(ctx, product)
+		}
 	}
 
-	// Update product
-	if err := h.productRepo.Update(ctx, product); err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Error:   "Failed to update product",
-			Message: err.Error(),
-		})
-		return
+	// Handle images update if provided
+	if req.Images != nil {
+		// Delete existing images
+		if err := h.db.WithContext(ctx).Where("product_id = ?", product.ID).Delete(&models.Image{}).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+				Error:   "Failed to delete existing images",
+				Message: err.Error(),
+			})
+			return
+		}
+
+		// Ensure only one primary image
+		hasPrimary := false
+		for i := range req.Images {
+			if req.Images[i].IsPrimary {
+				if hasPrimary {
+					req.Images[i].IsPrimary = false
+				}
+				hasPrimary = true
+			}
+		}
+		// If no primary, make first one primary
+		if !hasPrimary && len(req.Images) > 0 {
+			req.Images[0].IsPrimary = true
+		}
+
+		// Create new image records
+		for _, imgReq := range req.Images {
+			image := &models.Image{
+				ResourceID: uuid.New().String(),
+				ProductID:  product.ID,
+				URL:        imgReq.URL,
+				Alt:        imgReq.Alt,
+				SortOrder:  imgReq.SortOrder,
+				IsPrimary:  imgReq.IsPrimary,
+			}
+			if err := h.db.WithContext(ctx).Create(image).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+					Error:   "Failed to save image",
+					Message: err.Error(),
+				})
+				return
+			}
+		}
 	}
 
 	// Fetch updated product
@@ -512,10 +727,17 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 		}
 	}
 
+	// Set computed fields for response
+	updatedProduct.Stock = updatedProduct.StockQuantity
+	updatedProduct.MinStock = updatedProduct.LowStockThreshold
+	if updatedProduct.BrandRef != nil {
+		updatedProduct.Brand = updatedProduct.BrandRef.Name
+	}
 	status := "active"
-	if !updatedProduct.IsFeatured {
+	if !updatedProduct.IsActive {
 		status = "inactive"
 	}
+	updatedProduct.Status = status
 
 	c.JSON(http.StatusOK, dto.ProductResponse{
 		ID:           updatedProduct.ID,
@@ -525,9 +747,9 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 		SKU:          updatedProduct.SKU,
 		Price:        updatedProduct.Price,
 		ComparePrice: updatedProduct.ComparePrice,
-		Cost:         updatedProduct.Cost,
-		Stock:        updatedProduct.Stock,
-		MinStock:     updatedProduct.MinStock,
+		Cost:         updatedProduct.CostPrice,
+		Stock:        updatedProduct.StockQuantity,
+		MinStock:     updatedProduct.LowStockThreshold,
 		Weight:       updatedProduct.Weight,
 		Dimensions:   updatedProduct.Dimensions,
 		Brand:        updatedProduct.Brand,
@@ -535,7 +757,7 @@ func (h *AdminProductsHandler) UpdateProduct(c *gin.Context) {
 		Status:       status,
 		IsFeatured:   updatedProduct.IsFeatured,
 		IsDigital:    updatedProduct.IsDigital,
-		CategoryID:   updatedProduct.CategoryID,
+		CategoryID:   product.CategoryID,
 		Category:     categoryResp,
 		Images:       images,
 		CreatedAt:    updatedProduct.CreatedAt,

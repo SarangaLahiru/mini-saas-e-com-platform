@@ -201,11 +201,12 @@ func (h *AdminAnalyticsHandler) GetDashboard(c *gin.Context) {
 
 // GetSalesData godoc
 // @Summary Get sales data
-// @Description Get sales statistics for a given time period
+// @Description Get sales statistics for a given time period with different grouping options
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Param days query int false "Number of days" default(30)
+// @Param group query string false "Grouping: daily, weekly, monthly, yearly" default(daily)
 // @Success 200 {object} dto.AdminSalesDataResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /admin/analytics/sales [get]
@@ -216,6 +217,11 @@ func (h *AdminAnalyticsHandler) GetSalesData(c *gin.Context) {
 	days, err := strconv.Atoi(daysStr)
 	if err != nil || days <= 0 {
 		days = 30
+	}
+
+	groupBy := c.DefaultQuery("group", "daily")
+	if groupBy != "daily" && groupBy != "weekly" && groupBy != "monthly" && groupBy != "yearly" {
+		groupBy = "daily"
 	}
 
 	startDate := time.Now().AddDate(0, 0, -days)
@@ -250,25 +256,101 @@ func (h *AdminAnalyticsHandler) GetSalesData(c *gin.Context) {
 		avgOrderValue = totalSales / float64(totalOrders)
 	}
 
-	// Get sales by day
 	var salesByDay []dto.SalesByDay
-	h.db.DB.WithContext(ctx).
-		Table("orders").
-		Select(`
-			DATE(created_at) as date,
-			COALESCE(SUM(total_amount), 0) as sales,
-			COUNT(*) as orders
-		`).
-		Where("status != ? AND status != ?", "cancelled", "refunded").
-		Where("created_at >= ?", startDate).
-		Group("DATE(created_at)").
-		Order("date ASC").
-		Scan(&salesByDay)
 
-	// Fill in missing dates with zero sales for better chart visualization
-	if len(salesByDay) > 0 {
-		// This is optional - can be handled on frontend if needed
-		// For now, backend returns actual sales data
+	// Get sales data based on grouping
+	switch groupBy {
+	case "daily":
+		// Group by day
+		h.db.DB.WithContext(ctx).
+			Table("orders").
+			Select(`
+				DATE(created_at) as date,
+				COALESCE(SUM(total_amount), 0) as sales,
+				COUNT(*) as orders
+			`).
+			Where("status != ? AND status != ?", "cancelled", "refunded").
+			Where("created_at >= ?", startDate).
+			Group("DATE(created_at)").
+			Order("date ASC").
+			Scan(&salesByDay)
+
+	case "weekly":
+		// Group by week (start of week - Monday)
+		h.db.DB.WithContext(ctx).
+			Table("orders").
+			Select(`
+				DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as date,
+				COALESCE(SUM(total_amount), 0) as sales,
+				COUNT(*) as orders
+			`).
+			Where("status != ? AND status != ?", "cancelled", "refunded").
+			Where("created_at >= ?", startDate).
+			Group("DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))").
+			Order("date ASC").
+			Scan(&salesByDay)
+
+	case "monthly":
+		// Group by month
+		type MonthlyData struct {
+			Month  string  `json:"month"`
+			Sales  float64 `json:"sales"`
+			Orders int64   `json:"orders"`
+		}
+		var monthlyData []MonthlyData
+		h.db.DB.WithContext(ctx).
+			Table("orders").
+			Select(`
+				DATE_FORMAT(created_at, '%Y-%m') as month,
+				COALESCE(SUM(total_amount), 0) as sales,
+				COUNT(*) as orders
+			`).
+			Where("status != ? AND status != ?", "cancelled", "refunded").
+			Where("created_at >= ?", startDate).
+			Group("DATE_FORMAT(created_at, '%Y-%m')").
+			Order("month ASC").
+			Scan(&monthlyData)
+		
+		// Convert monthly data to daily format for consistency
+		salesByDay = make([]dto.SalesByDay, len(monthlyData))
+		for i, m := range monthlyData {
+			salesByDay[i] = dto.SalesByDay{
+				Date:  m.Month + "-01", // Use first day of month as date
+				Sales: m.Sales,
+				Orders: m.Orders,
+			}
+		}
+
+	case "yearly":
+		// Group by year
+		type YearlyData struct {
+			Year   string  `json:"year"`
+			Sales  float64 `json:"sales"`
+			Orders int64   `json:"orders"`
+		}
+		var yearlyData []YearlyData
+		h.db.DB.WithContext(ctx).
+			Table("orders").
+			Select(`
+				DATE_FORMAT(created_at, '%Y') as year,
+				COALESCE(SUM(total_amount), 0) as sales,
+				COUNT(*) as orders
+			`).
+			Where("status != ? AND status != ?", "cancelled", "refunded").
+			Where("created_at >= ?", startDate).
+			Group("DATE_FORMAT(created_at, '%Y')").
+			Order("year ASC").
+			Scan(&yearlyData)
+		
+		// Convert yearly data to daily format for consistency
+		salesByDay = make([]dto.SalesByDay, len(yearlyData))
+		for i, y := range yearlyData {
+			salesByDay[i] = dto.SalesByDay{
+				Date:  y.Year + "-01-01", // Use first day of year as date
+				Sales: y.Sales,
+				Orders: y.Orders,
+			}
+		}
 	}
 
 	response := dto.AdminSalesDataResponse{

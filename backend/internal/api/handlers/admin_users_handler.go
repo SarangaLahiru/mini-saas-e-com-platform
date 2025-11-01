@@ -253,6 +253,126 @@ func (h *AdminUsersHandler) UpdateUser(c *gin.Context) {
 	})
 }
 
+// GetUser godoc
+// @Summary Get user details with orders (Admin)
+// @Description Get detailed information about a user including all their orders
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Param id path string true "User Resource ID"
+// @Success 200 {object} dto.AdminUserDetailResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /admin/users/{id} [get]
+func (h *AdminUsersHandler) GetUser(c *gin.Context) {
+	resourceID := c.Param("id")
+	if resourceID == "" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid request",
+			Message: "User ID is required",
+		})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Get user
+	user, err := h.userRepo.GetByResourceID(ctx, resourceID)
+	if err != nil || user == nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{
+			Error:   "User not found",
+			Message: "User with the given ID does not exist",
+		})
+		return
+	}
+
+	// Get all orders for this user
+	orders, err := h.orderRepo.List(ctx, user.ID, 1000, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Failed to get orders",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Calculate stats
+	var totalSpent float64
+	var ordersCount int64
+	var orderResponses []dto.AdminOrderDetailResponse
+
+	for _, order := range orders {
+		if order.Status != "cancelled" && order.Status != "refunded" {
+			totalSpent += order.Total
+		}
+		ordersCount++
+
+		// Convert order items
+		var items []dto.OrderItemResponse
+		for _, item := range order.OrderItems {
+			items = append(items, dto.OrderItemResponse{
+				ResourceID: item.ResourceID,
+				Product: dto.ProductSummaryResponse{
+					ResourceID: item.Product.ResourceID,
+					Name:       item.Product.Name,
+					SKU:        item.Product.SKU,
+					Price:      item.Price,
+				},
+				Quantity: item.Quantity,
+				Price:    item.Price,
+				Total:    item.Total,
+			})
+		}
+
+		orderResponses = append(orderResponses, dto.AdminOrderDetailResponse{
+			OrderResponse: dto.OrderResponse{
+				ResourceID:     order.ResourceID,
+				OrderNumber:    order.OrderNumber,
+				UserID:         order.UserID,
+				Status:         order.Status,
+				PaymentStatus:  order.PaymentStatus,
+				Subtotal:       order.Subtotal,
+				TaxAmount:      order.TaxAmount,
+				ShippingCost:   order.ShippingCost,
+				DiscountAmount: order.DiscountAmount,
+				Total:          order.Total,
+				Currency:       order.Currency,
+				Notes:          order.Notes,
+				CreatedAt:      order.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+				UpdatedAt:      order.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			},
+			Customer: dto.UserSummary{
+				ID:        user.ID,
+				FirstName: user.FirstName,
+				LastName:  user.LastName,
+			},
+			Items: items,
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.AdminUserDetailResponse{
+		User: dto.AdminUserResponse{
+			ID:          user.ID,
+			ResourceID: user.ResourceID,
+			Username:    user.Username,
+			Email:       user.Email,
+			FirstName:   user.FirstName,
+			LastName:    user.LastName,
+			Phone:       user.Phone,
+			Avatar:      user.Avatar,
+			IsActive:    user.IsActive,
+			IsAdmin:     user.IsAdmin,
+			IsVerified:  user.IsVerified,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+			LastLoginAt: user.LastLoginAt,
+			OrdersCount: ordersCount,
+			TotalSpent:  totalSpent,
+		},
+		Orders: orderResponses,
+	})
+}
+
 // Helper function
 func containsIgnoreCase(s, substr string) bool {
 	if len(s) < len(substr) {

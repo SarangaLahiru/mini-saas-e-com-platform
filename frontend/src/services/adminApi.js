@@ -202,6 +202,31 @@ export const adminCategoriesAPI = {
 }
 
 // ============================================
+// ADMIN BRANDS API
+// ============================================
+export const adminBrandsAPI = {
+    // Get all brands
+    getBrands: (params = {}) => 
+        adminApi.get('/admin/brands', { params }).then(res => res.data),
+    
+    // Get single brand
+    getBrand: (id) => 
+        adminApi.get(`/admin/brands/${id}`).then(res => res.data),
+    
+    // Create brand
+    createBrand: (brandData) => 
+        adminApi.post('/admin/brands', brandData).then(res => res.data),
+    
+    // Update brand
+    updateBrand: (id, brandData) => 
+        adminApi.put(`/admin/brands/${id}`, brandData).then(res => res.data),
+    
+    // Delete brand
+    deleteBrand: (id) => 
+        adminApi.delete(`/admin/brands/${id}`).then(res => res.data),
+}
+
+// ============================================
 // ADMIN ANALYTICS API
 // ============================================
 export const adminAnalyticsAPI = {
@@ -210,8 +235,12 @@ export const adminAnalyticsAPI = {
         adminApi.get('/admin/analytics/dashboard', { params }).then(res => res.data),
     
     // Get sales data
-    getSalesData: (params = {}) => 
-        adminApi.get('/admin/analytics/sales', { params }).then(res => res.data),
+    getSalesData: (params = {}) => {
+        const queryParams = new URLSearchParams()
+        if (params.days) queryParams.append('days', params.days)
+        if (params.group) queryParams.append('group', params.group)
+        return adminApi.get(`/admin/analytics/sales?${queryParams.toString()}`).then(res => res.data)
+    },
     
     // Get top products
     getTopProducts: (params = {}) => 
@@ -308,6 +337,9 @@ export const adminAPI = {
     
     // Categories
     categories: adminCategoriesAPI,
+    
+    // Brands
+    brands: adminBrandsAPI,
     
     // Analytics
     analytics: adminAnalyticsAPI,

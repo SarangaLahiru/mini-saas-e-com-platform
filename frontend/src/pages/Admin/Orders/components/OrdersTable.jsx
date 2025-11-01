@@ -1,132 +1,176 @@
 import React from 'react'
 import Card from '../../../../components/ui/Card'
 import Button from '../../../../components/ui/Button'
+import Badge from '../../../../components/ui/Badge'
+import LoadingSpinner from '../../../../components/ui/LoadingSpinner'
 import { formatPrice, formatDate } from '../../../../utils/format'
 
-const OrdersTable = () => {
-  const orders = [
-    {
-      id: 1,
-      orderNumber: 'ORD20241201001',
-      customer: 'John Doe',
-      date: '2024-01-15',
-      status: 'delivered',
-      paymentStatus: 'paid',
-      total: 1299.99,
-    },
-    {
-      id: 2,
-      orderNumber: 'ORD20241201002',
-      customer: 'Jane Smith',
-      date: '2024-01-14',
-      status: 'shipped',
-      paymentStatus: 'paid',
-      total: 599.99,
-    },
-    {
-      id: 3,
-      orderNumber: 'ORD20241201003',
-      customer: 'Bob Johnson',
-      date: '2024-01-13',
-      status: 'pending',
-      paymentStatus: 'pending',
-      total: 299.99,
-    },
-  ]
-
+const OrdersTable = ({ orders, loading, total, page, limit, onPageChange, onViewOrder, onStatusUpdate }) => {
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'delivered':
-        return 'text-success-600 bg-success-100'
-      case 'shipped':
-        return 'text-primary-600 bg-primary-100'
-      case 'pending':
-        return 'text-warning-600 bg-warning-100'
-      default:
-        return 'text-gray-600 bg-gray-100'
+    const statusColors = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      processing: 'bg-blue-100 text-blue-800',
+      shipped: 'bg-indigo-100 text-indigo-800',
+      delivered: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800',
+      refunded: 'bg-gray-100 text-gray-800',
     }
+    return statusColors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800'
   }
 
   const getPaymentStatusColor = (status) => {
-    switch (status) {
-      case 'paid':
-        return 'text-success-600 bg-success-100'
-      case 'pending':
-        return 'text-warning-600 bg-warning-100'
-      case 'failed':
-        return 'text-error-600 bg-error-100'
-      default:
-        return 'text-gray-600 bg-gray-100'
+    const paymentColors = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      processing: 'bg-blue-100 text-blue-800',
+      completed: 'bg-green-100 text-green-800',
+      paid: 'bg-green-100 text-green-800', // alias for completed
+      failed: 'bg-red-100 text-red-800',
+      cancelled: 'bg-red-100 text-red-800',
+      refunded: 'bg-gray-100 text-gray-800',
     }
+    return paymentColors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800'
+  }
+
+  const totalPages = Math.ceil(total / limit)
+
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingSpinner />
+        </div>
+      </Card>
+    )
   }
 
   return (
     <Card className="p-6">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Order
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Customer
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Payment
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Total
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {orders.map((order) => (
-              <tr key={order.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    #{order.orderNumber}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{order.customer}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(order.date)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                    {order.paymentStatus}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatPrice(order.total)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">View</Button>
-                    <Button variant="outline" size="sm">Edit</Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mb-4 flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} orders
+        </div>
       </div>
+
+      {orders.length > 0 ? (
+        <>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Order #
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Items
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {orders.map((order) => {
+                  const customerName = order.customer 
+                    ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() || order.customer.email
+                    : 'Guest'
+                  
+                  return (
+                    <tr key={order.resource_id || order.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          #{order.order_number}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{customerName}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(order.created_at)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status?.charAt(0).toUpperCase() + order.status?.slice(1) || 'Unknown'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={getPaymentStatusColor(order.payment_status || 'pending')}>
+                          {order.payment_status ? 
+                            order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1) : 
+                            'Pending'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {order.items?.length || 0} item{order.items?.length !== 1 ? 's' : ''}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {formatPrice(order.total, order.currency || 'USD')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onViewOrder(order)}
+                        >
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+              <div className="flex items-center">
+                <p className="text-sm text-gray-700">
+                  Page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
+                </p>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange(page - 1)}
+                  disabled={page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPageChange(page + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center py-12 text-gray-500">
+          <p className="text-lg">No orders found.</p>
+          <p className="text-sm mt-2">Orders will appear here once customers start placing them.</p>
+        </div>
+      )}
     </Card>
   )
 }

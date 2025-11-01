@@ -38,7 +38,10 @@ func (r *orderRepository) GetByID(ctx context.Context, id uint) (*models.Order, 
 		Preload("OrderItems").
 		Preload("OrderItems.Product").
 		Preload("OrderItems.Variant").
-		Preload("Payments").
+		Preload("Payments", func(db *gorm.DB) *gorm.DB {
+			// Explicitly select all payment fields including payment_status
+			return db.Select("id", "resource_id", "order_id", "payment_method", "amount", "currency", "payment_status", "transaction_id", "gateway_response", "processed_at", "created_at", "updated_at")
+		}).
 		First(&order, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -56,7 +59,10 @@ func (r *orderRepository) GetByResourceID(ctx context.Context, resourceID string
 		Preload("OrderItems").
 		Preload("OrderItems.Product").
 		Preload("OrderItems.Variant").
-		Preload("Payments").
+		Preload("Payments", func(db *gorm.DB) *gorm.DB {
+			// Explicitly select all payment fields including payment_status
+			return db.Select("id", "resource_id", "order_id", "payment_method", "amount", "currency", "payment_status", "transaction_id", "gateway_response", "processed_at", "created_at", "updated_at")
+		}).
 		Where("resource_id = ?", resourceID).
 		First(&order).Error
 	if err != nil {
@@ -75,7 +81,10 @@ func (r *orderRepository) GetByOrderNumber(ctx context.Context, orderNumber stri
 		Preload("OrderItems").
 		Preload("OrderItems.Product").
 		Preload("OrderItems.Variant").
-		Preload("Payments").
+		Preload("Payments", func(db *gorm.DB) *gorm.DB {
+			// Explicitly select all payment fields including payment_status
+			return db.Select("id", "resource_id", "order_id", "payment_method", "amount", "currency", "payment_status", "transaction_id", "gateway_response", "processed_at", "created_at", "updated_at")
+		}).
 		Where("order_number = ?", orderNumber).
 		First(&order).Error
 	if err != nil {
@@ -102,7 +111,10 @@ func (r *orderRepository) List(ctx context.Context, userID uint, limit, offset i
 		Preload("OrderItems").
 		Preload("OrderItems.Product").
 		Preload("OrderItems.Variant").
-		Preload("Payments")
+		Preload("Payments", func(db *gorm.DB) *gorm.DB {
+			// Explicitly select all payment fields including payment_status
+			return db.Select("id", "resource_id", "order_id", "payment_method", "amount", "currency", "payment_status", "transaction_id", "gateway_response", "processed_at", "created_at", "updated_at")
+		})
 
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)

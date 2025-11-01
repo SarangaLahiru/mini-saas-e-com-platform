@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { HeartIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon, PhotoIcon } from '@heroicons/react/24/solid'
 import { formatPrice } from '../../utils/format'
+import { getPrimaryImageUrl } from '../../utils/imageUrl'
 import Button from '../ui/Button'
 import { useCart } from '../../contexts/CartContext'
 import { useWishlist } from '../../contexts/WishlistContext'
@@ -17,7 +18,7 @@ const ProductCard = ({ product, className = '' }) => {
   const [isAddingToCart, setIsAddingToCart] = React.useState(false)
   const [isWishlistLoading, setIsWishlistLoading] = React.useState(false)
 
-  const imageUrl = product.images?.[0]?.url || ''
+  const imageUrl = getPrimaryImageUrl(product) || ''
   
   // Get the numeric product ID (backend uses numeric ID, not resource_id)
   const productId = product.id || product.product_id

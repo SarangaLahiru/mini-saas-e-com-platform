@@ -5,6 +5,7 @@ import Badge from '../../../../components/ui/Badge'
 import Pagination from '../../../../components/ui/Pagination'
 import LoadingSpinner from '../../../../components/ui/LoadingSpinner'
 import { formatPrice } from '../../../../utils/format'
+import { getPrimaryImageUrl } from '../../../../utils/imageUrl'
 
 const ProductsTable = ({ products, loading, onEdit, onDelete, onViewDetails, currentPage = 1, totalPages = 1, onPageChange }) => {
   const getStatusColor = (status) => {
@@ -71,7 +72,7 @@ const ProductsTable = ({ products, loading, onEdit, onDelete, onViewDetails, cur
             {products.length > 0 ? (
               products.map((product) => {
                 const status = getStatus(product)
-                const primaryImage = product.images?.[0]?.url || product.image
+                const primaryImage = getPrimaryImageUrl(product) || product.image
                 
                 return (
                   <tr key={product.resource_id || product.id} className="hover:bg-gray-50 transition-colors">
@@ -94,7 +95,7 @@ const ProductsTable = ({ products, loading, onEdit, onDelete, onViewDetails, cur
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{product.name}</div>
                           <div className="text-sm text-gray-500">
-                            {product.category?.name || product.category || 'Uncategorized'}
+                            {product.category?.name || (typeof product.category === 'string' ? product.category : 'Uncategorized')}
                           </div>
                         </div>
                       </div>

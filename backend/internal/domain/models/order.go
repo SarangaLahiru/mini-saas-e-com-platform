@@ -53,18 +53,23 @@ type Payment struct {
 	ID              uint       `gorm:"primaryKey" json:"id"`
 	ResourceID      string     `gorm:"uniqueIndex;type:char(36);not null" json:"resource_id"`
 	OrderID         uint       `gorm:"not null" json:"order_id"`
-	Method          string     `gorm:"size:20;not null" json:"method"`
+	Method          string     `gorm:"size:20;not null;column:payment_method" json:"method"`
 	Amount          float64    `gorm:"type:decimal(10,2);not null" json:"amount"`
 	Currency        string     `gorm:"size:3;default:USD" json:"currency"`
-	Status          string     `gorm:"size:20;default:pending" json:"status"`
-	TransactionID   string     `gorm:"size:100" json:"transaction_id"`
-	GatewayResponse string     `gorm:"type:text" json:"gateway_response"`
-	ProcessedAt     *time.Time `json:"processed_at"`
+	Status          string     `gorm:"column:payment_status" json:"status"`
+	TransactionID   string     `gorm:"size:255" json:"transaction_id"`
+	GatewayResponse string     `gorm:"type:json;column:gateway_response" json:"gateway_response"`
+	ProcessedAt     *time.Time `gorm:"column:processed_at" json:"processed_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 
 	// Relationships
 	Order Order `gorm:"foreignKey:OrderID" json:"order,omitempty"`
+}
+
+// TableName specifies the table name for Payment
+func (Payment) TableName() string {
+	return "payments"
 }
 
 func (o *Order) BeforeCreate(tx *gorm.DB) error {

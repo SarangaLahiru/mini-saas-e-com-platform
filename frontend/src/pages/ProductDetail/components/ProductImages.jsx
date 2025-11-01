@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { productsAPI } from '../../../services/api'
+import { getImageUrl as convertImageUrl } from '../../../utils/imageUrl'
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon, 
@@ -55,7 +56,7 @@ const ProductImages = ({ productId }) => {
     if (imageLoadErrors.has(image.url)) {
       return 'https://via.placeholder.com/800x800/e5e7eb/6b7280?text=Image+Not+Available'
     }
-    return image.url
+    return convertImageUrl(image.url)
   }
 
   React.useEffect(() => {
