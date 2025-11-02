@@ -365,6 +365,10 @@ export const adminAPI = {
     getAnalytics: adminAnalyticsAPI.getDashboard,
     getSalesData: adminAnalyticsAPI.getSalesData,
     getTopProducts: adminAnalyticsAPI.getTopProducts,
+    
+    // Search
+    search: (query, limit = 5) => 
+        adminApi.get('/admin/search', { params: { q: query, limit } }).then(res => res.data),
 }
 
 export default adminApi

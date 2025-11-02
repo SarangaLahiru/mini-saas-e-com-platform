@@ -187,6 +187,10 @@ func (s *Server) setupRoutes() {
 			adminCategoriesHandler := handlers.NewAdminCategoriesHandler(categoryRepo)
 			brandRepo := repository.NewBrandRepository(s.db.DB)
 			adminBrandsHandler := handlers.NewAdminBrandsHandler(brandRepo)
+			adminSearchHandler := handlers.NewAdminSearchHandler(productRepo, orderRepo, userRepo, categoryRepo, brandRepo, s.db.DB)
+
+			// Search route (should be before other routes to avoid conflicts)
+			admin.GET("/search", adminSearchHandler.Search)
 
 			// Analytics routes
 			analytics := admin.Group("/analytics")

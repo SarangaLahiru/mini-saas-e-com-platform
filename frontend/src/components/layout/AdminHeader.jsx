@@ -2,11 +2,13 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import Avatar from '../ui/Avatar'
+import AdminSearchBar from './AdminSearchBar'
 
 const AdminHeader = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [showMenu, setShowMenu] = useState(false)
+  const [showMobileSearch, setShowMobileSearch] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -21,7 +23,7 @@ const AdminHeader = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-md">
-      <div className="flex items-center justify-between px-6 h-16">
+      <div className="flex items-center justify-between px-6 h-16 gap-4">
         <div className="flex items-center space-x-4">
           <Link to="/admin" className="flex items-center space-x-3 group">
             <div className="h-10 w-10 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
@@ -35,6 +37,21 @@ const AdminHeader = () => {
             </div>
           </Link>
         </div>
+
+        {/* Search Bar - Center (Desktop) */}
+        <div className="flex-1 max-w-2xl mx-6 hidden lg:block">
+          <AdminSearchBar />
+        </div>
+
+        {/* Mobile Search Button */}
+        <button
+          onClick={() => setShowMobileSearch(!showMobileSearch)}
+          className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
 
         <div className="flex items-center space-x-4">
           {/* Quick Actions */}
@@ -114,6 +131,13 @@ const AdminHeader = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Search Bar */}
+      {showMobileSearch && (
+        <div className="lg:hidden px-6 py-3 border-t border-gray-200 bg-white">
+          <AdminSearchBar onNavigate={() => setShowMobileSearch(false)} />
+        </div>
+      )}
     </header>
   )
 }

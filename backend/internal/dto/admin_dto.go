@@ -184,5 +184,74 @@ type AdminCategoryListResponse struct {
 	Limit      int                `json:"limit"`
 }
 
+// ============================================
+// ADMIN SEARCH DTOs
+// ============================================
+
+type AdminSearchResponse struct {
+	Query   string               `json:"query"`
+	Results AdminSearchResults   `json:"results"`
+	Totals  AdminSearchTotals    `json:"totals"`
+}
+
+type AdminSearchResults struct {
+	Products  []AdminSearchProductResult  `json:"products"`
+	Orders    []AdminSearchOrderResult   `json:"orders"`
+	Users     []AdminSearchUserResult    `json:"users"`
+	Categories []AdminSearchCategoryResult `json:"categories"`
+	Brands    []AdminSearchBrandResult   `json:"brands"`
+}
+
+type AdminSearchTotals struct {
+	Products   int64 `json:"products"`
+	Orders     int64 `json:"orders"`
+	Users      int64 `json:"users"`
+	Categories int64 `json:"categories"`
+	Brands     int64 `json:"brands"`
+}
+
+type AdminSearchProductResult struct {
+	ResourceID   string  `json:"resource_id"`
+	Name         string  `json:"name"`
+	SKU          string  `json:"sku"`
+	Price        float64 `json:"price"`
+	Status       string  `json:"status"`
+	CategoryName string  `json:"category_name,omitempty"`
+	Image        string  `json:"image,omitempty"`
+}
+
+type AdminSearchOrderResult struct {
+	ResourceID  string  `json:"resource_id"`
+	OrderNumber string  `json:"order_number"`
+	Customer    string  `json:"customer"`
+	Total       float64 `json:"total"`
+	Status      string  `json:"status"`
+}
+
+type AdminSearchUserResult struct {
+	ResourceID string `json:"resource_id"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	IsActive   bool   `json:"is_active"`
+	IsAdmin    bool   `json:"is_admin"`
+}
+
+type AdminSearchCategoryResult struct {
+	ResourceID string `json:"resource_id"`
+	Name       string `json:"name"`
+	Slug       string `json:"slug"`
+	Image      string `json:"image,omitempty"`
+	IsActive   bool   `json:"is_active"`
+}
+
+type AdminSearchBrandResult struct {
+	ResourceID string `json:"resource_id"`
+	Name       string `json:"name"`
+	Slug       string `json:"slug"`
+	Image      string `json:"image,omitempty"`
+}
+
 // Note: SuccessResponse and ErrorResponse are defined in auth_dto.go
 

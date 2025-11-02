@@ -35,17 +35,54 @@ const AdminCategories = () => {
     is_active: true,
   })
 
+  // Fetch initial data on mount
   useEffect(() => {
-    if (activeTab === 'categories') {
+    const loadInitialData = async () => {
+      setLoading(true)
+      try {
+        // Fetch both in parallel for initial load
+        await Promise.all([fetchCategoriesSilent(), fetchBrandsSilent()])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadInitialData()
+  }, [])
+
+  // Refetch when tab changes (if data not loaded)
+  useEffect(() => {
+    if (activeTab === 'categories' && categories.length === 0) {
       fetchCategories()
-    } else {
+    } else if (activeTab === 'brands' && brands.length === 0) {
       fetchBrands()
     }
   }, [activeTab])
 
+  // Silent fetch functions for initial load (don't manage loading state)
+  const fetchCategoriesSilent = async () => {
+    try {
+      const response = await adminAPI.categories.getCategories()
+      setCategories(response.categories || response || [])
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
+    }
+  }
+
+  const fetchBrandsSilent = async () => {
+    try {
+      const response = await adminAPI.brands.getBrands()
+      setBrands(response.brands || response || [])
+    } catch (error) {
+      console.error('Failed to fetch brands:', error)
+    }
+  }
+
   const fetchCategories = async () => {
     try {
-      setLoading(true)
+      // Only show loading if categories haven't been loaded yet
+      if (categories.length === 0) {
+        setLoading(true)
+      }
       const response = await adminAPI.categories.getCategories()
       setCategories(response.categories || response || [])
     } catch (error) {
@@ -58,7 +95,10 @@ const AdminCategories = () => {
 
   const fetchBrands = async () => {
     try {
-      setLoading(true)
+      // Only show loading if brands haven't been loaded yet
+      if (brands.length === 0) {
+        setLoading(true)
+      }
       const response = await adminAPI.brands.getBrands()
       setBrands(response.brands || response || [])
     } catch (error) {
