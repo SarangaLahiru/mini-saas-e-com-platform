@@ -26,7 +26,7 @@ const WishlistDrawer = ({ isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50"
+          className="fixed inset-0 z-[200]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -42,7 +42,7 @@ const WishlistDrawer = ({ isOpen, onClose }) => {
 
           {/* Drawer */}
           <motion.div
-            className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl"
+            className="fixed right-0 top-0 h-full w-96 bg-white shadow-xl z-[201]"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
