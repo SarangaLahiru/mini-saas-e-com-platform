@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle2, AlertCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { sendForgotPasswordOTP } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { extractErrorMessage } from '../../utils/errorUtils';

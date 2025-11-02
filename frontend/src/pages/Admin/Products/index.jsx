@@ -5,7 +5,7 @@ import Input from '../../../components/ui/Input'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner'
 import { adminAPI } from '../../../services/adminApi'
 import { productsAPI, reviewsAPI } from '../../../services/api'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 
 // Lazy load components
 const ProductsTable = React.lazy(() => import('./components/ProductsTable'))

@@ -80,6 +80,7 @@ type OrderResponse struct {
 	DeliveredAt    *string   `json:"delivered_at"`
 	CreatedAt      string    `json:"created_at"`
 	UpdatedAt      string    `json:"updated_at"`
+	ItemCount      int       `json:"item_count,omitempty"`
 }
 
 type OrderDetailResponse struct {

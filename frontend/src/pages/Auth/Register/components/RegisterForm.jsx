@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../../../contexts/AuthContext'
 import GoogleAuthButton from '../../../../components/auth/GoogleAuthButton'
 import useGoogleAuth from '../../../../hooks/useGoogleAuth'
-import toast from 'react-hot-toast'
+import toast from '../../../../utils/toast'
 import PasswordRequirements from '../../../../components/ui/PasswordRequirements'
 import { extractErrorMessage, extractFieldErrors } from '../../../../utils/errorUtils'
 

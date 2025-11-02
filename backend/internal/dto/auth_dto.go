@@ -100,22 +100,28 @@ type RefreshTokenRequest struct {
 }
 
 type UpdateProfileRequest struct {
+	Username  *string `json:"username" binding:"omitempty,min=3,max=50"`
 	FirstName *string `json:"firstName" binding:"omitempty,min=2,max=50"`
 	LastName  *string `json:"lastName" binding:"omitempty,min=2,max=50"`
 	Phone     *string `json:"phone" binding:"omitempty,min=10,max=20"`
-	Avatar    *string `json:"avatar" binding:"omitempty,url"`
+	Avatar    *string `json:"avatar" binding:"omitempty"`
 }
 
 func (u *UpdateProfileRequest) Validate() error {
+	// Validate username format if provided
+	if u.Username != nil && *u.Username != "" {
+		if len(*u.Username) < 3 || len(*u.Username) > 50 {
+			return errors.New("username must be between 3 and 50 characters")
+		}
+	}
+
 	// Validate phone format if provided
 	if u.Phone != nil && *u.Phone != "" && !isValidPhone(*u.Phone) {
 		return errors.New("phone number format is invalid")
 	}
 
-	// Validate avatar URL if provided
-	if u.Avatar != nil && *u.Avatar != "" && !isValidURL(*u.Avatar) {
-		return errors.New("avatar must be a valid URL")
-	}
+	// Avatar can be a URL or relative path, so we don't validate URL format strictly
+	// The backend will handle relative paths correctly
 
 	return nil
 }
@@ -128,14 +134,15 @@ type AuthResponse struct {
 }
 
 type UserResponse struct {
-	ResourceID string `json:"resource_id"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	FirstName  string `json:"first_name"`
-	LastName   string `json:"last_name"`
-	Avatar     string `json:"avatar"`
-	IsAdmin    bool   `json:"is_admin"`
-	IsVerified bool   `json:"is_verified"`
+	ResourceID string            `json:"resource_id"`
+	Username   string            `json:"username"`
+	Email      string            `json:"email"`
+	FirstName  string            `json:"first_name"`
+	LastName   string            `json:"last_name"`
+	Avatar     string            `json:"avatar"`
+	IsAdmin    bool              `json:"is_admin"`
+	IsVerified bool              `json:"is_verified"`
+	Addresses  []AddressResponse `json:"addresses,omitempty"`
 }
 
 type TokenResponse struct {

@@ -12,9 +12,10 @@ import MobileMenu from './HeaderComponents/MobileMenu'
 import MobileSearchBar from './HeaderComponents/MobileSearchBar'
 import NavigationTabs from './HeaderComponents/NavigationTabs'
 import { useAuth } from '../../contexts/AuthContext'
+import HeaderSkeleton from './HeaderComponents/HeaderSkeleton'
 
 const EnhancedHeader = () => {
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -23,6 +24,9 @@ const EnhancedHeader = () => {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false)
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const [showNavigationTabs, setShowNavigationTabs] = useState(true)
+
+  // Show skeleton during initial authentication load
+  const shouldShowSkeleton = authLoading
 
   // Scroll effect for header styling and navigation tabs
   useEffect(() => {
@@ -49,6 +53,11 @@ const EnhancedHeader = () => {
     } catch (error) {
       console.error('Logout failed:', error)
     }
+  }
+
+  // Show skeleton during initial load
+  if (shouldShowSkeleton) {
+    return <HeaderSkeleton scrolled={scrolled} />
   }
 
   return (

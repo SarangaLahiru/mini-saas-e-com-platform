@@ -74,13 +74,17 @@ const HeroSection = () => {
           transition={{ duration: 0.5, ease: 'easeInOut' }}
         >
           <div className="relative h-full">
-            {/* Background Image */}
-            <div
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-              style={{
-                backgroundImage: `url(${slides[currentSlide].image})`,
-              }}
-            >
+            {/* Background Image with Fallback Gradient */}
+            <div className="absolute inset-0">
+              {/* Gradient fallback (always visible as background) */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700" />
+              {/* Image overlay */}
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-70"
+                style={{
+                  backgroundImage: `url(${slides[currentSlide].image})`,
+                }}
+              />
               <div className="absolute inset-0 bg-black bg-opacity-40" />
             </div>
 

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react'
 import { wishlistAPI } from '../services/api'
 import { useAuth } from './AuthContext'
-import toast from 'react-hot-toast'
+import toast from '../utils/toast'
 
 const WishlistContext = createContext()
 

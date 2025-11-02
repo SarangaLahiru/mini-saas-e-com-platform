@@ -19,7 +19,7 @@
  */
 
 import axios from 'axios'
-import toast from 'react-hot-toast'
+import toast from '../utils/toast'
 
 // Create dedicated admin axios instance with admin-specific configuration
 const adminApi = axios.create({

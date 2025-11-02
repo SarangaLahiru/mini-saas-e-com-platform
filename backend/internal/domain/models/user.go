@@ -33,18 +33,23 @@ type User struct {
 }
 
 type Address struct {
-	ID         uint   `gorm:"primaryKey" json:"id"`
-	ResourceID string `gorm:"uniqueIndex;type:char(36);not null" json:"resource_id"`
-	UserID     uint   `gorm:"not null" json:"user_id"`
-	Type       string `gorm:"size:20;not null" json:"type"` // home, work, other
-	Street     string `gorm:"size:200;not null" json:"street"`
-	City       string `gorm:"size:50;not null" json:"city"`
-	State      string `gorm:"size:50;not null" json:"state"`
-	Country    string `gorm:"size:50;not null" json:"country"`
-	PostalCode string `gorm:"size:20;not null" json:"postal_code"`
-	IsDefault  bool   `gorm:"default:false" json:"is_default"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	ResourceID   string `gorm:"uniqueIndex;type:char(36);not null" json:"resource_id"`
+	UserID       uint   `gorm:"not null" json:"user_id"`
+	Type         string `gorm:"type:enum('billing','shipping');not null;default:'shipping'" json:"type"`
+	FirstName    string `gorm:"size:50;not null" json:"first_name"`
+	LastName     string `gorm:"size:50;not null" json:"last_name"`
+	Company      string `gorm:"size:100" json:"company,omitempty"`
+	AddressLine1 string `gorm:"column:address_line_1;size:255;not null" json:"address_line_1"`
+	AddressLine2 string `gorm:"column:address_line_2;size:255" json:"address_line_2,omitempty"`
+	City         string `gorm:"size:100;not null" json:"city"`
+	State        string `gorm:"size:100;not null" json:"state"`
+	PostalCode   string `gorm:"column:postal_code;size:20;not null" json:"postal_code"`
+	Country      string `gorm:"size:100;not null" json:"country"`
+	Phone        string `gorm:"size:20" json:"phone,omitempty"`
+	IsDefault    bool   `gorm:"column:is_default;default:false" json:"is_default"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 
 	// Relationships
 	User User `gorm:"foreignKey:UserID" json:"user,omitempty"`

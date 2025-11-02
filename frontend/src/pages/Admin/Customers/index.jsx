@@ -9,7 +9,7 @@ import Avatar from '../../../components/ui/Avatar'
 import Modal from '../../../components/ui/Modal'
 import { adminAPI } from '../../../services/adminApi'
 import { formatPrice } from '../../../utils/format'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 
 const AdminCustomers = () => {
   const navigate = useNavigate()

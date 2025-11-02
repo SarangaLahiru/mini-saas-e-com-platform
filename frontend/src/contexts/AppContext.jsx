@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
-import toast from 'react-hot-toast'
+import toast from '../utils/toast'
 
 // App Context
 const AppContext = createContext()

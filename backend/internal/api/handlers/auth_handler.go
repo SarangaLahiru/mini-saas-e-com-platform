@@ -6,6 +6,7 @@ import (
 	"electronics-store/internal/usecase"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -426,6 +427,28 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
+	// Convert addresses to response format
+	addressResponses := make([]dto.AddressResponse, 0)
+	for _, addr := range user.Addresses {
+		addressResponses = append(addressResponses, dto.AddressResponse{
+			ResourceID:   addr.ResourceID,
+			Type:         addr.Type,
+			FirstName:    addr.FirstName,
+			LastName:     addr.LastName,
+			Company:      addr.Company,
+			AddressLine1: addr.AddressLine1,
+			AddressLine2: addr.AddressLine2,
+			City:         addr.City,
+			State:        addr.State,
+			PostalCode:   addr.PostalCode,
+			Country:      addr.Country,
+			Phone:        addr.Phone,
+			IsDefault:    addr.IsDefault,
+			CreatedAt:    addr.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    addr.UpdatedAt.Format(time.RFC3339),
+		})
+	}
+
 	c.JSON(http.StatusOK, dto.UserResponse{
 		ResourceID: user.ResourceID,
 		Username:   user.Username,
@@ -435,6 +458,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		Avatar:     user.Avatar,
 		IsAdmin:    user.IsAdmin,
 		IsVerified: user.IsVerified,
+		Addresses:  addressResponses,
 	})
 }
 
@@ -467,6 +491,28 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
+	// Convert addresses to response format
+	addressResponses := make([]dto.AddressResponse, 0)
+	for _, addr := range user.Addresses {
+		addressResponses = append(addressResponses, dto.AddressResponse{
+			ResourceID:   addr.ResourceID,
+			Type:         addr.Type,
+			FirstName:    addr.FirstName,
+			LastName:     addr.LastName,
+			Company:      addr.Company,
+			AddressLine1: addr.AddressLine1,
+			AddressLine2: addr.AddressLine2,
+			City:         addr.City,
+			State:        addr.State,
+			PostalCode:   addr.PostalCode,
+			Country:      addr.Country,
+			Phone:        addr.Phone,
+			IsDefault:    addr.IsDefault,
+			CreatedAt:    addr.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    addr.UpdatedAt.Format(time.RFC3339),
+		})
+	}
+
 	c.JSON(http.StatusOK, dto.UserResponse{
 		ResourceID: user.ResourceID,
 		Username:   user.Username,
@@ -476,6 +522,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		Avatar:     user.Avatar,
 		IsAdmin:    user.IsAdmin,
 		IsVerified: user.IsVerified,
+		Addresses:  addressResponses,
 	})
 }
 

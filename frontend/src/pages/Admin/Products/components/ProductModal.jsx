@@ -5,7 +5,7 @@ import Input from '../../../../components/ui/Input'
 import { adminAPI } from '../../../../services/adminApi'
 import { productsAPI } from '../../../../services/api'
 import { getImageUrl } from '../../../../utils/imageUrl'
-import toast from 'react-hot-toast'
+import toast from '../../../../utils/toast'
 
 const MAX_IMAGES = 5
 

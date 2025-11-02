@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useState } from 'react'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner'
 import Card from '../../../components/ui/Card'
 import { adminAPI } from '../../../services/adminApi'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 
 // Lazy load components
 const DashboardStats = React.lazy(() => import('./components/DashboardStats'))

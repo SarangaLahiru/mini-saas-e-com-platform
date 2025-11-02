@@ -7,7 +7,7 @@ import Badge from '../../../../components/ui/Badge'
 import Avatar from '../../../../components/ui/Avatar'
 import { adminAPI } from '../../../../services/adminApi'
 import { formatPrice, formatDate } from '../../../../utils/format'
-import toast from 'react-hot-toast'
+import toast from '../../../../utils/toast'
 
 const CustomerDetail = () => {
   const { id } = useParams()

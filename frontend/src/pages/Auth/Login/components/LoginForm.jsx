@@ -168,6 +168,7 @@ const LoginForm = ({ onSuccess, onGoogleAuth, isLoading, isGoogleLoading }) => {
               name="email"
               value={formData.email}
               onChange={handleInputChange}
+              autoComplete="email"
               className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
               }`}
@@ -198,6 +199,7 @@ const LoginForm = ({ onSuccess, onGoogleAuth, isLoading, isGoogleLoading }) => {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
+              autoComplete="current-password"
               className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'
               }`}

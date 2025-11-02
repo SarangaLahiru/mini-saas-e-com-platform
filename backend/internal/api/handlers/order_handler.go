@@ -46,6 +46,10 @@ func (h *OrderHandler) List(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	status := c.Query("status")
+	paymentStatus := c.Query("payment_status")
+	dateFrom := c.Query("date_from")
+	dateTo := c.Query("date_to")
 
 	if page <= 0 {
 		page = 1
@@ -53,8 +57,26 @@ func (h *OrderHandler) List(c *gin.Context) {
 	if limit <= 0 {
 		limit = 10
 	}
+	if limit > 100 {
+		limit = 100
+	}
 
-	orders, total, err := h.orderUsecase.List(c.Request.Context(), userID.(uint), page, limit)
+	// Build filters map
+	filters := make(map[string]interface{})
+	if status != "" {
+		filters["status"] = status
+	}
+	if paymentStatus != "" {
+		filters["payment_status"] = paymentStatus
+	}
+	if dateFrom != "" {
+		filters["date_from"] = dateFrom
+	}
+	if dateTo != "" {
+		filters["date_to"] = dateTo
+	}
+
+	orders, total, err := h.orderUsecase.List(c.Request.Context(), userID.(uint), page, limit, filters)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "Failed to get orders",
@@ -66,6 +88,9 @@ func (h *OrderHandler) List(c *gin.Context) {
 	// Convert to response DTOs
 	var orderResponses []dto.OrderResponse
 	for _, order := range orders {
+		// Count order items
+		itemCount := len(order.OrderItems)
+		
 		orderResponses = append(orderResponses, dto.OrderResponse{
 			ResourceID:     order.ResourceID,
 			OrderNumber:    order.OrderNumber,
@@ -81,6 +106,7 @@ func (h *OrderHandler) List(c *gin.Context) {
 			Notes:          order.Notes,
 			CreatedAt:      order.CreatedAt.Format("2006-01-02T15:04:05Z"),
 			UpdatedAt:      order.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+			ItemCount:      itemCount,
 		})
 	}
 
@@ -131,21 +157,69 @@ func (h *OrderHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.OrderResponse{
-		ResourceID:     order.ResourceID,
-		OrderNumber:    order.OrderNumber,
-		UserID:         order.UserID,
-		Status:         order.Status,
-		PaymentStatus:  order.PaymentStatus,
-		Subtotal:       order.Subtotal,
-		TaxAmount:      order.TaxAmount,
-		ShippingCost:   order.ShippingCost,
-		DiscountAmount: order.DiscountAmount,
-		Total:          order.Total,
-		Currency:       order.Currency,
-		Notes:          order.Notes,
-		CreatedAt:      order.CreatedAt.Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:      order.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+	// Convert order items
+	var items []dto.OrderItemResponse
+	for _, item := range order.OrderItems {
+		// Get primary product image
+		imageURL := ""
+		if len(item.Product.Images) > 0 {
+			for _, img := range item.Product.Images {
+				if img.IsPrimary {
+					imageURL = img.URL
+					break
+				}
+			}
+			// Fallback to first image if no primary
+			if imageURL == "" {
+				imageURL = item.Product.Images[0].URL
+			}
+		}
+
+		// Use order item price, fallback to product price if order item price is 0
+		itemPrice := item.Price
+		if itemPrice == 0 && item.Product.Price > 0 {
+			itemPrice = item.Product.Price
+		}
+
+		// Calculate total if missing or zero
+		itemTotal := item.Total
+		if itemTotal == 0 && itemPrice > 0 {
+			itemTotal = itemPrice * float64(item.Quantity)
+		}
+
+		items = append(items, dto.OrderItemResponse{
+			ResourceID: item.ResourceID,
+			Product: dto.ProductSummaryResponse{
+				ResourceID: item.Product.ResourceID,
+				Name:       item.Product.Name,
+				SKU:        item.Product.SKU,
+				Price:      itemPrice, // Use calculated price for display
+				Image:      imageURL,
+			},
+			Quantity: item.Quantity,
+			Price:    itemPrice, // Use calculated price
+			Total:    itemTotal, // Use calculated total
+		})
+	}
+
+	c.JSON(http.StatusOK, dto.OrderDetailResponse{
+		OrderResponse: dto.OrderResponse{
+			ResourceID:     order.ResourceID,
+			OrderNumber:    order.OrderNumber,
+			UserID:         order.UserID,
+			Status:         order.Status,
+			PaymentStatus:  order.PaymentStatus,
+			Subtotal:       order.Subtotal,
+			TaxAmount:      order.TaxAmount,
+			ShippingCost:   order.ShippingCost,
+			DiscountAmount: order.DiscountAmount,
+			Total:          order.Total,
+			Currency:       order.Currency,
+			Notes:          order.Notes,
+			CreatedAt:      order.CreatedAt.Format("2006-01-02T15:04:05Z"),
+			UpdatedAt:      order.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		},
+		OrderItems: items,
 	})
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Lock, ShieldCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast from '../../utils/toast';
 import { submitResetPassword } from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import PasswordRequirements from '../../components/ui/PasswordRequirements';

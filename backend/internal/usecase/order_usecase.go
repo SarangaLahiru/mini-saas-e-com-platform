@@ -13,7 +13,7 @@ var (
 )
 
 type OrderUsecase interface {
-	List(ctx context.Context, userID uint, page, limit int) ([]*models.Order, int64, error)
+	List(ctx context.Context, userID uint, page, limit int, filters map[string]interface{}) ([]*models.Order, int64, error)
 	GetByID(ctx context.Context, id uint) (*models.Order, error)
 	GetByResourceID(ctx context.Context, resourceID string) (*models.Order, error)
 	Create(ctx context.Context, order *models.Order) error
@@ -31,15 +31,15 @@ func NewOrderUsecase(orderRepo repository.OrderRepository) OrderUsecase {
 	}
 }
 
-func (u *orderUsecase) List(ctx context.Context, userID uint, page, limit int) ([]*models.Order, int64, error) {
+func (u *orderUsecase) List(ctx context.Context, userID uint, page, limit int, filters map[string]interface{}) ([]*models.Order, int64, error) {
 	offset := (page - 1) * limit
 	
-	orders, err := u.orderRepo.List(ctx, userID, limit, offset)
+	orders, err := u.orderRepo.List(ctx, userID, limit, offset, filters)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	total, err := u.orderRepo.Count(ctx, userID)
+	total, err := u.orderRepo.Count(ctx, userID, filters)
 	if err != nil {
 		return nil, 0, err
 	}

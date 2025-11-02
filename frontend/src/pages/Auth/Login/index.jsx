@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext'
 import LoginHeader from './components/LoginHeader'
 import LoginForm from './components/LoginForm'
 import ProcessingLoader from '../../../components/ui/ProcessingLoader'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 
 const Login = () => {
   const { login, googleAuth, user, isAuthenticated, isLoading: authIsLoading } = useAuth()

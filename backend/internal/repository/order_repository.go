@@ -15,8 +15,8 @@ type OrderRepository interface {
 	GetByOrderNumber(ctx context.Context, orderNumber string) (*models.Order, error)
 	Update(ctx context.Context, order *models.Order) error
 	Delete(ctx context.Context, id uint) error
-	List(ctx context.Context, userID uint, limit, offset int) ([]*models.Order, error)
-	Count(ctx context.Context, userID uint) (int64, error)
+	List(ctx context.Context, userID uint, limit, offset int, filters map[string]interface{}) ([]*models.Order, error)
+	Count(ctx context.Context, userID uint, filters map[string]interface{}) (int64, error)
 }
 
 type orderRepository struct {
@@ -58,6 +58,7 @@ func (r *orderRepository) GetByResourceID(ctx context.Context, resourceID string
 		Preload("User").
 		Preload("OrderItems").
 		Preload("OrderItems.Product").
+		Preload("OrderItems.Product.Images").
 		Preload("OrderItems.Variant").
 		Preload("Payments", func(db *gorm.DB) *gorm.DB {
 			// Explicitly select all payment fields including payment_status
@@ -104,7 +105,7 @@ func (r *orderRepository) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&models.Order{}, id).Error
 }
 
-func (r *orderRepository) List(ctx context.Context, userID uint, limit, offset int) ([]*models.Order, error) {
+func (r *orderRepository) List(ctx context.Context, userID uint, limit, offset int, filters map[string]interface{}) ([]*models.Order, error) {
 	var orders []*models.Order
 	query := r.db.WithContext(ctx).
 		Preload("User").
@@ -120,6 +121,20 @@ func (r *orderRepository) List(ctx context.Context, userID uint, limit, offset i
 		query = query.Where("user_id = ?", userID)
 	}
 
+	// Apply filters
+	if status, ok := filters["status"].(string); ok && status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if paymentStatus, ok := filters["payment_status"].(string); ok && paymentStatus != "" {
+		query = query.Where("payment_status = ?", paymentStatus)
+	}
+	if dateFrom, ok := filters["date_from"].(string); ok && dateFrom != "" {
+		query = query.Where("DATE(created_at) >= ?", dateFrom)
+	}
+	if dateTo, ok := filters["date_to"].(string); ok && dateTo != "" {
+		query = query.Where("DATE(created_at) <= ?", dateTo)
+	}
+
 	err := query.Order("created_at desc").
 		Limit(limit).
 		Offset(offset).
@@ -127,12 +142,26 @@ func (r *orderRepository) List(ctx context.Context, userID uint, limit, offset i
 	return orders, err
 }
 
-func (r *orderRepository) Count(ctx context.Context, userID uint) (int64, error) {
+func (r *orderRepository) Count(ctx context.Context, userID uint, filters map[string]interface{}) (int64, error) {
 	var count int64
 	query := r.db.WithContext(ctx).Model(&models.Order{})
 
 	if userID > 0 {
 		query = query.Where("user_id = ?", userID)
+	}
+
+	// Apply same filters as List
+	if status, ok := filters["status"].(string); ok && status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if paymentStatus, ok := filters["payment_status"].(string); ok && paymentStatus != "" {
+		query = query.Where("payment_status = ?", paymentStatus)
+	}
+	if dateFrom, ok := filters["date_from"].(string); ok && dateFrom != "" {
+		query = query.Where("DATE(created_at) >= ?", dateFrom)
+	}
+	if dateTo, ok := filters["date_to"].(string); ok && dateTo != "" {
+		query = query.Where("DATE(created_at) <= ?", dateTo)
 	}
 
 	err := query.Count(&count).Error

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../contexts/AuthContext'
-import toast from 'react-hot-toast'
+import toast from '../../utils/toast'
 import ProcessingLoader from '../../components/ui/ProcessingLoader'
 
 const GoogleCallback = () => {
@@ -11,6 +11,8 @@ const GoogleCallback = () => {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('Authenticating with Google...')
   const [subMessage, setSubMessage] = useState('Please wait while we verify your account')
+  const exchangeInProgress = useRef(false)
+  const processedCode = useRef(null)
 
   useEffect(() => {
     // Prevent body scroll when loading overlay is shown
@@ -25,12 +27,37 @@ const GoogleCallback = () => {
 
   useEffect(() => {
     const run = async () => {
+      // Prevent duplicate exchanges
+      if (exchangeInProgress.current) {
+        console.log('Google OAuth exchange already in progress, skipping...')
+        return
+      }
+
       try {
         const params = new URLSearchParams(window.location.search)
         const code = params.get('code')
         if (!code) {
           throw new Error('Missing authorization code')
         }
+
+        // Check if this code was already processed
+        const processedCodeKey = `google_code_${code.substring(0, 20)}`
+        if (processedCode.current === code || sessionStorage.getItem(processedCodeKey)) {
+          console.log('Code already processed, checking if user is authenticated...')
+          // Code was already used - check if we're already authenticated
+          const existingToken = localStorage.getItem('access_token')
+          if (existingToken) {
+            // User is already authenticated, just redirect
+            const redirectPath = '/'
+            navigate(redirectPath, { replace: true })
+            return
+          }
+          throw new Error('Authorization code already used. Please try signing in again.')
+        }
+
+        exchangeInProgress.current = true
+        processedCode.current = code
+        sessionStorage.setItem(processedCodeKey, 'true')
         
         setMessage('Connecting to Google...')
         setSubMessage('Verifying your credentials')
@@ -44,7 +71,16 @@ const GoogleCallback = () => {
         
         if (!res.ok) {
           const err = await res.json().catch(() => ({}))
-          throw new Error(err.message || err.error || 'Google authentication failed')
+          const errorMsg = err.message || err.error || 'Google authentication failed'
+          
+          // Handle invalid_grant error gracefully
+          if (errorMsg.includes('invalid_grant') || errorMsg.includes('Bad Request')) {
+            // Code was already used or expired - clear it and redirect to login
+            sessionStorage.removeItem(processedCodeKey)
+            throw new Error('This authorization code has already been used or expired. Please try signing in again.')
+          }
+          
+          throw new Error(errorMsg)
         }
         
         const data = await res.json()
@@ -79,11 +115,14 @@ const GoogleCallback = () => {
         // Redirect to login on error with replace to avoid back button issues
         setTimeout(() => {
           navigate('/auth/login', { replace: true })
-        }, 1000)
+        }, 2000)
+      } finally {
+        exchangeInProgress.current = false
       }
     }
     run()
-  }, [googleAuth, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Keep showing loader even after redirect to prevent skeleton flash
   // The loader will be hidden when the component unmounts after page loads

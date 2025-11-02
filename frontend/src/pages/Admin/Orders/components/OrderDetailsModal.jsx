@@ -7,7 +7,7 @@ import LoadingSpinner from '../../../../components/ui/LoadingSpinner'
 import { adminAPI } from '../../../../services/adminApi'
 import { formatPrice, formatDate } from '../../../../utils/format'
 import { getImageUrl } from '../../../../utils/imageUrl'
-import toast from 'react-hot-toast'
+import toast from '../../../../utils/toast'
 
 const OrderDetailsModal = ({ order, isOpen, onClose, onStatusUpdate }) => {
   const [updating, setUpdating] = useState(false)

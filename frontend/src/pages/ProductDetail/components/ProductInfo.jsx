@@ -20,7 +20,7 @@ import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import Button from '../../../components/ui/Button'
 import Badge from '../../../components/ui/Badge'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 
 const ProductInfo = ({ productId }) => {
   const navigate = useNavigate()

@@ -9,7 +9,7 @@ import Button from '../ui/Button'
 import { useCart } from '../../contexts/CartContext'
 import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
-import toast from 'react-hot-toast'
+import toast from '../../utils/toast'
 
 const ProductCard = ({ product, className = '' }) => {
   const { addToCart } = useCart()

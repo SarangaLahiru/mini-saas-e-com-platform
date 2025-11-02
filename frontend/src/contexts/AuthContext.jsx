@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { authAPI } from '../services/api'
 import tokenManager from '../utils/tokenManager'
 import { normalizeUserData } from '../utils/userUtils'
-import toast from 'react-hot-toast'
+import toast from '../utils/toast'
 
 // Auth Context
 const AuthContext = createContext()
@@ -214,17 +214,20 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  // Update profile function
+  // Update profile function (optimized to prevent full page refresh)
   const updateProfile = async (profileData) => {
     try {
-      dispatch({ type: 'AUTH_START' })
+      // Don't dispatch AUTH_START for profile updates - it causes full page loading state
       const updatedUser = await authAPI.updateProfile(profileData)
-      dispatch({ type: 'UPDATE_USER', payload: updatedUser })
-      toast.success('Profile updated successfully!')
-      return updatedUser
+      // Normalize user data to ensure consistent format (e.g., avatar field)
+      const normalizedUser = normalizeUserData(updatedUser)
+      // Only update user state without triggering loading states
+      dispatch({ type: 'UPDATE_USER', payload: normalizedUser })
+      // Don't show success toast here - let the calling component handle it to avoid double toasts
+      return normalizedUser
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Profile update failed'
-      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage })
+      // Only dispatch error without triggering full auth failure state
       toast.error(errorMessage)
       throw error
     }

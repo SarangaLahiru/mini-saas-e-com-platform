@@ -80,7 +80,7 @@ func (s *Server) setupRoutes() {
 	googleOAuthService := services.NewGoogleOAuthService(s.config.OAuth.GoogleClientID)
 
 	// Initialize usecases
-	authUsecase := usecase.NewAuthUsecase(userRepo, s.config.JWT.AccessTokenSecret, s.config.JWT.RefreshTokenSecret, googleOAuthService, s.config.OAuth.GoogleClientSecret)
+	authUsecase := usecase.NewAuthUsecase(userRepo, s.config.JWT.AccessTokenSecret, s.config.JWT.RefreshTokenSecret, googleOAuthService, s.config.OAuth.GoogleClientSecret, s.config.OAuth.RedirectURL)
     productUsecase := usecase.NewProductUsecase(productRepo)
     categoryUsecase := usecase.NewCategoryUsecase(categoryRepo, productUsecase)
 	orderUsecase := usecase.NewOrderUsecase(orderRepo)
@@ -122,6 +122,23 @@ func (s *Server) setupRoutes() {
 			auth.POST("/logout", authHandler.Logout)
 			auth.GET("/profile", middleware.AuthMiddleware(s.config.JWT.AccessTokenSecret), authHandler.GetProfile)
 			auth.PUT("/profile", middleware.AuthMiddleware(s.config.JWT.AccessTokenSecret), authHandler.UpdateProfile)
+			
+			// Profile avatar upload (Protected)
+			auth.POST("/profile/avatar", middleware.AuthMiddleware(s.config.JWT.AccessTokenSecret), uploadHandler.UploadProfileAvatar)
+			
+			// Address routes (Protected)
+			addressRepo := repository.NewAddressRepository(s.db.DB)
+			addressUsecase := usecase.NewAddressUsecase(addressRepo)
+			addressHandler := handlers.NewAddressHandler(addressUsecase)
+			addresses := auth.Group("/addresses")
+			addresses.Use(middleware.AuthMiddleware(s.config.JWT.AccessTokenSecret))
+			{
+				addresses.GET("", addressHandler.GetUserAddresses)
+				addresses.POST("", addressHandler.CreateAddress)
+				addresses.PUT("/:id", addressHandler.UpdateAddress)
+				addresses.DELETE("/:id", addressHandler.DeleteAddress)
+				addresses.POST("/:id/default", addressHandler.SetDefaultAddress)
+			}
 			
 			// OTP routes
 			auth.POST("/send-otp", authHandler.SendOTP)

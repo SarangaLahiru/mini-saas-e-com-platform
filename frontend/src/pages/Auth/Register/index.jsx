@@ -8,7 +8,7 @@ import RegisterHeader from './components/RegisterHeader'
 import RegisterForm from './components/RegisterForm'
 import OTPVerification from '../../../components/auth/OTPVerification'
 import AuthSkeleton from '../../../components/auth/AuthSkeleton'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 import { extractErrorMessage } from '../../../utils/errorUtils'
 
 const Register = () => {

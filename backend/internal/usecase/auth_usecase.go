@@ -48,15 +48,17 @@ type authUsecase struct {
 	refreshSecret   string
 	googleOAuthService *services.GoogleOAuthService
 	googleClientSecret string
+	googleRedirectURI  string
 }
 
-func NewAuthUsecase(userRepo repository.UserRepository, jwtSecret, refreshSecret string, googleOAuthService *services.GoogleOAuthService, googleClientSecret string) AuthUsecase {
+func NewAuthUsecase(userRepo repository.UserRepository, jwtSecret, refreshSecret string, googleOAuthService *services.GoogleOAuthService, googleClientSecret string, googleRedirectURI string) AuthUsecase {
 	return &authUsecase{
 		userRepo:   userRepo,
 		jwtSecret:  jwtSecret,
 		refreshSecret: refreshSecret,
 		googleOAuthService: googleOAuthService,
 		googleClientSecret: googleClientSecret,
+		googleRedirectURI: googleRedirectURI,
 	}
 }
 
@@ -374,7 +376,7 @@ func (u *authUsecase) ExchangeGoogleCode(ctx context.Context, code string) (*mod
 	data.Set("code", code)
 	data.Set("client_id", u.googleOAuthService.GetClientID())
 	data.Set("client_secret", u.googleClientSecret)
-	data.Set("redirect_uri", "http://localhost:3000/auth/google/callback") // Match frontend redirect route
+	data.Set("redirect_uri", u.googleRedirectURI) // Use configured redirect URI
 	data.Set("grant_type", "authorization_code")
 
 	resp, err := client.PostForm(tokenURL, data)
@@ -388,6 +390,14 @@ func (u *authUsecase) ExchangeGoogleCode(ctx context.Context, code string) (*mod
 		// Try to read error response
 		json.NewDecoder(resp.Body).Decode(&errorResponse)
 		fmt.Printf("Google Token Exchange Error Response: %+v\n", errorResponse)
+		
+		// Check for specific error types
+		if errVal, ok := errorResponse["error"].(string); ok {
+			if errVal == "invalid_grant" {
+				return nil, nil, fmt.Errorf("authorization code already used or expired: %v", errorResponse)
+			}
+		}
+		
 		return nil, nil, fmt.Errorf("failed to exchange code: status %d, error: %v", resp.StatusCode, errorResponse)
 	}
 
@@ -560,6 +570,19 @@ func (u *authUsecase) UpdateProfile(ctx context.Context, userID uint, req dto.Up
 	}
 	if user == nil {
 		return nil, ErrUserNotFound
+	}
+
+	// Update username if provided and different
+	if req.Username != nil && *req.Username != "" && *req.Username != user.Username {
+		// Check if username is already taken by another user
+		existingUser, err := u.userRepo.GetByUsername(ctx, *req.Username)
+		if err != nil {
+			return nil, err
+		}
+		if existingUser != nil && existingUser.ID != userID {
+			return nil, fmt.Errorf("username already taken")
+		}
+		user.Username = *req.Username
 	}
 
 	// Update fields

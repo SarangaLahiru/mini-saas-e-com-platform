@@ -297,3 +297,85 @@ func (h *UploadHandler) DeleteImage(c *gin.Context) {
 	})
 }
 
+// UploadProfileAvatar godoc
+// @Summary Upload profile avatar
+// @Description Upload a profile avatar image for authenticated user
+// @Tags auth
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param file formData file true "Avatar image file"
+// @Success 200 {object} dto.UploadResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /auth/profile/avatar [post]
+func (h *UploadHandler) UploadProfileAvatar(c *gin.Context) {
+	// Get file from form
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid request",
+			Message: "No file provided",
+		})
+		return
+	}
+
+	// Validate file type
+	allowedExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".webp"}
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowed := false
+	for _, allowedExt := range allowedExtensions {
+		if ext == allowedExt {
+			allowed = true
+			break
+		}
+	}
+
+	if !allowed {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid file type",
+			Message: "Only image files (jpg, jpeg, png, gif, webp) are allowed",
+		})
+		return
+	}
+
+	// Validate file size (max 2MB for avatars)
+	if file.Size > 2*1024*1024 {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "File too large",
+			Message: "Maximum file size is 2MB",
+		})
+		return
+	}
+
+	// Generate unique filename
+	resourceID := uuid.New().String()
+	filename := fmt.Sprintf("%s%s", resourceID, ext)
+	
+	// Always use "users" directory for profile avatars
+	uploadType := "users"
+	uploadPath := filepath.Join(h.uploadDir, uploadType, filename)
+
+	// Save file
+	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Failed to save file",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Generate URL for static file serving
+	url := fmt.Sprintf("/uploads/%s/%s", uploadType, filename)
+
+	c.JSON(http.StatusOK, dto.UploadResponse{
+		ResourceID: resourceID,
+		URL:        url,
+		Path:       uploadPath,
+		Size:       file.Size,
+		Type:       file.Header.Get("Content-Type"),
+		CreatedAt:  time.Now(),
+	})
+}
+

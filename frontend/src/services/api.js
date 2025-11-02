@@ -1,5 +1,5 @@
 import axios from 'axios'
-import toast from 'react-hot-toast'
+import toast from '../utils/toast'
 
 // Create axios instance
 const api = axios.create({
@@ -81,6 +81,19 @@ export const authAPI = {
     logout: () => api.post('/auth/logout').then(res => res.data),
     getProfile: () => api.get('/auth/profile').then(res => res.data),
     updateProfile: (profileData) => api.put('/auth/profile', profileData).then(res => res.data),
+    uploadAvatar: (file) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return api.post('/auth/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }).then(res => res.data)
+    },
+    // Address API
+    getAddresses: () => api.get('/auth/addresses').then(res => res.data),
+    createAddress: (addressData) => api.post('/auth/addresses', addressData).then(res => res.data),
+    updateAddress: (resourceId, addressData) => api.put(`/auth/addresses/${resourceId}`, addressData).then(res => res.data),
+    deleteAddress: (resourceId) => api.delete(`/auth/addresses/${resourceId}`).then(res => res.data),
+    setDefaultAddress: (resourceId) => api.post(`/auth/addresses/${resourceId}/default`).then(res => res.data),
     refreshToken: (refreshToken) => api.post('/auth/refresh', { refresh_token: refreshToken }).then(res => res.data),
     googleAuth: (googleData) => api.post('/auth/google', googleData).then(res => res.data),
     googleIDTokenAuth: (idToken) => api.post('/auth/google/id-token', { id_token: idToken }).then(res => res.data),

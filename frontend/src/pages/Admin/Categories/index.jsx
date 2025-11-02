@@ -7,7 +7,7 @@ import LoadingSpinner from '../../../components/ui/LoadingSpinner'
 import Badge from '../../../components/ui/Badge'
 import { adminAPI } from '../../../services/adminApi'
 import { getImageUrl } from '../../../utils/imageUrl'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 
 const AdminCategories = () => {
   const [activeTab, setActiveTab] = useState('categories') // 'categories' or 'brands'

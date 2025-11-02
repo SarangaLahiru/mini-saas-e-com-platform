@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Clock, Mail, ArrowLeft, RefreshCw } from 'lucide-react'
-import toast from 'react-hot-toast'
+import toast from '../../utils/toast'
 import { extractErrorMessage } from '../../utils/errorUtils'
 
 const OTPVerification = ({ 

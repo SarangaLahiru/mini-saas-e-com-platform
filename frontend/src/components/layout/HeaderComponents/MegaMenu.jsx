@@ -153,10 +153,10 @@ const MegaMenu = ({
                     </div>
 
                     {isLoadingCategoryProducts ? (
-                      <MegaMenuProductsSkeleton count={8} />
+                      <MegaMenuProductsSkeleton count={4} />
                     ) : categoryProducts && categoryProducts.length > 0 ? (
                       <div className="grid grid-cols-4 gap-4">
-                        {categoryProducts.map((product) => {
+                        {categoryProducts.slice(0, 4).map((product) => {
                           const productImage = product.images?.[0]?.url || product.image || ''
                           return (
                             <Link

@@ -13,31 +13,41 @@ import {
 } from '@heroicons/react/24/outline'
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
 import Button from '../../../components/ui/Button'
-import toast from 'react-hot-toast'
+import toast from '../../../utils/toast'
 import { formatDistanceToNow } from 'date-fns'
+import { getImageUrl } from '../../../utils/imageUrl'
 
 // Avatar component with image or initials fallback
 const Avatar = ({ firstName = '', lastName = '', src, size = 'md', className = '' }) => {
+  const [imageError, setImageError] = React.useState(false)
   const initials = `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase() || 'U'
   const sizeMap = { sm: 'w-8 h-8 text-sm', md: 'w-10 h-10 text-base', lg: 'w-12 h-12 text-lg' }
   const pickedSize = sizeMap[size] || sizeMap.md
 
-  // Prefer common avatar fields
-  const url = src || ''
+  // Get proper image URL using utility
+  const url = src ? getImageUrl(src) : null
 
-  if (url) {
+  React.useEffect(() => {
+    // Reset error state when src changes
+    setImageError(false)
+  }, [src])
+
+  if (url && !imageError) {
     return (
-      <img
-        src={url}
-        alt={`${firstName} ${lastName}`.trim() || 'User avatar'}
-        className={`rounded-full object-cover ${pickedSize} ${className}`}
-      />
+      <div className="relative">
+        <img
+          src={url}
+          alt={`${firstName} ${lastName}`.trim() || 'User avatar'}
+          className={`rounded-full object-cover border-2 border-white shadow-md ${pickedSize} ${className}`}
+          onError={() => setImageError(true)}
+        />
+      </div>
     )
   }
 
   return (
     <div
-      className={`rounded-full bg-gray-200 text-gray-700 font-semibold flex items-center justify-center ${pickedSize} ${className}`}
+      className={`rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-semibold flex items-center justify-center border-2 border-white shadow-md ${pickedSize} ${className}`}
       aria-label={initials}
     >
       {initials}

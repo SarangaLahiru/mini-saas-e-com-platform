@@ -33,7 +33,7 @@ const NavigationTabs = ({ showNavigationTabs, scrolled }) => {
   const { data: categoryProductsData, isLoading: isLoadingCategoryProducts } = useQuery({
     queryKey: ['category-products', hoveredCategory?.slug],
     queryFn: () => hoveredCategory
-      ? productsAPI.getProducts({ category_slug: hoveredCategory.slug, limit: 8 })
+      ? productsAPI.getProducts({ category_slug: hoveredCategory.slug, limit: 4 })
       : null,
     enabled: !!hoveredCategory && !!hoveredCategory.slug,
     staleTime: 30000,

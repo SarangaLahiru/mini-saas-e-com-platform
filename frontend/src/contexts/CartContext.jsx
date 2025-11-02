@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import { cartAPI } from '../services/api'
-import toast from 'react-hot-toast'
+import toast from '../utils/toast'
 import { useAuth } from './AuthContext'
 
 // Cart Context

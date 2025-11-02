@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { getUserInitials } from '../../utils/userUtils'
+import { getImageUrl } from '../../utils/imageUrl'
 
 const Avatar = ({ 
   user, 
@@ -21,7 +22,9 @@ const Avatar = ({
   }
 
   // Support both object format (user) and simple props (src, name)
-  const avatarUrl = user?.avatar || src
+  // Process avatar URL to handle relative paths
+  const rawAvatarUrl = user?.avatar || src
+  const avatarUrl = rawAvatarUrl ? getImageUrl(rawAvatarUrl) : null
   const displayName = user?.firstName && user?.lastName 
     ? `${user.firstName} ${user.lastName}` 
     : name || ''
@@ -63,6 +66,7 @@ const Avatar = ({
       <div className="w-full h-full rounded-full overflow-hidden border-2 border-white shadow-lg">
         {showImage ? (
           <img
+            key={avatarUrl} // Force re-render when avatar URL changes
             src={avatarUrl}
             alt={displayName}
             className="w-full h-full rounded-full object-cover"

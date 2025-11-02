@@ -94,7 +94,8 @@ func (r *userRepository) GetByGoogleID(ctx context.Context, googleID string) (*m
 }
 
 func (r *userRepository) Update(ctx context.Context, user *models.User) error {
-	return r.db.WithContext(ctx).Save(user).Error
+	// Use Omit to prevent saving related entities (Addresses, Orders, Reviews)
+	return r.db.WithContext(ctx).Omit("Addresses", "Orders", "Reviews").Save(user).Error
 }
 
 func (r *userRepository) Delete(ctx context.Context, id uint) error {

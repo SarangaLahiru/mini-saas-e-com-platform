@@ -88,7 +88,7 @@ export const MegaMenuProductSkeleton = ({ index = 0 }) => (
 )
 
 // Products Grid Skeleton for Mega Menu
-export const MegaMenuProductsSkeleton = ({ count = 8 }) => (
+export const MegaMenuProductsSkeleton = ({ count = 4 }) => (
   <div className="grid grid-cols-4 gap-4">
     {Array.from({ length: count }).map((_, index) => (
       <MegaMenuProductSkeleton key={index} index={index} />
@@ -137,7 +137,7 @@ export const MegaMenuSkeleton = () => (
         </div>
 
         {/* Products grid skeleton */}
-        <MegaMenuProductsSkeleton count={8} />
+        <MegaMenuProductsSkeleton count={4} />
       </div>
     </div>
   </div>
