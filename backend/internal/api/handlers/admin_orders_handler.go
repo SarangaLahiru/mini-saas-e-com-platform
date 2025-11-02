@@ -114,7 +114,7 @@ func (h *AdminOrdersHandler) ListOrders(c *gin.Context) {
 	
 	// Get all orders (we'll filter in-memory for now, can optimize later with SQL WHERE clauses)
 	// For large datasets, this should be moved to database-level filtering
-	orders, err := h.orderRepo.List(ctx, 0, 10000, 0) // Get a large batch for filtering
+	orders, err := h.orderRepo.List(ctx, 0, 10000, 0, map[string]interface{}{}) // Get a large batch for filtering
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "Failed to get orders",

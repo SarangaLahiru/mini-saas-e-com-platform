@@ -1,14 +1,15 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrashIcon, ShoppingBagIcon, HeartIcon } from '@heroicons/react/24/outline'
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid'
+import { Trash2, ShoppingBag, Heart, Minus, Plus } from 'lucide-react'
 import { useCart } from '../../../contexts/CartContext'
 import { useWishlist } from '../../../contexts/WishlistContext'
 import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import { formatPrice } from '../../../utils/format'
+import { getImageUrl } from '../../../utils/imageUrl'
 import CartItemSkeleton from '../../../components/cart/CartItemSkeleton'
+import LoadingSpinner from '../../../components/ui/LoadingSpinner'
 
 const CartItems = () => {
   const { items, removeFromCart, updateQuantity, isLoading } = useCart()
@@ -61,29 +62,31 @@ const CartItems = () => {
 
   if (isLoading) {
     return (
-      <Card className="p-6">
-        <CartItemSkeleton count={3} />
+      <Card className="p-6 bg-white shadow-lg border border-gray-200">
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner />
+        </div>
       </Card>
     )
   }
 
   if (items.length === 0) {
     return (
-      <Card className="p-12 text-center">
+      <Card className="p-12 text-center bg-white shadow-lg border border-gray-200">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
-            <ShoppingBagIcon className="h-10 w-10 text-gray-400" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-6">
+            <ShoppingBag className="h-10 w-10 text-blue-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h3>
           <p className="text-gray-500 mb-8 max-w-sm mx-auto">
             Looks like you haven't added any items to your cart yet. Start shopping to fill it up!
           </p>
-          <Link to="/">
-            <Button size="lg" className="px-8">
+          <Link to="/products">
+            <Button size="lg" className="px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
               Start Shopping
             </Button>
           </Link>
@@ -93,12 +96,15 @@ const CartItems = () => {
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden bg-white shadow-lg border border-gray-200">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Cart Items ({items.length} {items.length === 1 ? 'item' : 'items'})
-        </h2>
+      <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="w-5 h-5 text-blue-600" />
+          <h2 className="text-lg font-bold text-gray-900">
+            Cart Items ({items.length} {items.length === 1 ? 'item' : 'items'})
+          </h2>
+        </div>
       </div>
 
       {/* Items List */}
@@ -123,9 +129,9 @@ const CartItems = () => {
                   to={`/products/${item.product?.resource_id || item.product_id}`}
                   className="flex-shrink-0 group"
                 >
-                  <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200 group-hover:border-blue-400 transition-colors">
+                  <div className="relative w-32 h-32 rounded-xl overflow-hidden border-2 border-gray-200 group-hover:border-blue-500 transition-all shadow-md group-hover:shadow-lg">
                     <img
-                      src={item.product?.image || item.image || 'https://via.placeholder.com/150'}
+                      src={getImageUrl(item.product?.image || item.image)}
                       alt={item.product?.name || item.name || 'Product'}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       onError={(e) => {
@@ -181,23 +187,23 @@ const CartItems = () => {
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleWishlistToggle(item.product_id || item.product?.id)}
                         disabled={wishlistLoading[item.product_id || item.product?.id]}
-                        className="p-2 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`p-2.5 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isInWishlist(item.product_id || item.product?.id)
+                            ? 'bg-pink-50 text-pink-600 hover:bg-pink-100'
+                            : 'bg-gray-50 text-gray-400 hover:bg-pink-50 hover:text-pink-600'
+                        }`}
                         title={isInWishlist(item.product_id || item.product?.id) ? "Remove from wishlist" : "Add to wishlist"}
                       >
-                        {isInWishlist(item.product_id || item.product?.id) ? (
-                          <HeartIconSolid className="h-5 w-5 text-red-500" />
-                        ) : (
-                          <HeartIcon className="h-5 w-5 text-gray-400 hover:text-red-500" />
-                        )}
+                        <Heart className={`h-5 w-5 ${isInWishlist(item.product_id || item.product?.id) ? 'fill-current' : ''}`} />
                       </motion.button>
 
                       {/* Remove Button */}
                       <button
                         onClick={() => handleRemoveItem(item.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
                         title="Remove from cart"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        <Trash2 className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
@@ -206,38 +212,37 @@ const CartItems = () => {
                   <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
                     {/* Quantity Controls */}
                     <div className="flex items-center gap-4">
-                      <span className="text-sm font-medium text-gray-700">Quantity:</span>
-                      <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
+                      <span className="text-sm font-semibold text-gray-700">Quantity:</span>
+                      <div className="flex items-center gap-1 bg-gray-50 border-2 border-gray-200 rounded-xl px-2 py-2">
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           disabled={item.quantity <= 1}
-                          className="p-1 text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all disabled:hover:bg-transparent disabled:hover:text-gray-600"
                           title="Decrease quantity"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                          </svg>
+                          <Minus className="h-4 w-4" />
                         </button>
-                        <span className="w-12 text-center text-base font-semibold text-gray-900">
+                        <span className="w-10 text-center text-base font-bold text-gray-900 px-2">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="p-1 text-gray-600 hover:text-gray-900 transition-colors"
+                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           title="Increase quantity"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
 
                     {/* Item Subtotal */}
                     <div className="text-right">
-                      <p className="text-sm text-gray-500 mb-1">Subtotal</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                      <p className="text-xs text-gray-500 mb-1">Item Subtotal</p>
+                      <p className="text-2xl font-bold text-blue-600">
                         {formatPrice(item.price * item.quantity)}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {formatPrice(item.price)} × {item.quantity}
                       </p>
                     </div>
                   </div>

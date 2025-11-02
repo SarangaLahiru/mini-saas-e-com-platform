@@ -370,7 +370,7 @@ const ReviewForm = ({ productId, user, onSubmit, isSubmitting }) => {
 }
 
 // Review Item Component (YouTube Style)
-const ReviewItem = ({ review, currentUser, onDelete, onReply, isReplySubmitting }) => {
+const ReviewItem = React.forwardRef(({ review, currentUser, onDelete, onReply, isReplySubmitting }, ref) => {
   const [showReplyForm, setShowReplyForm] = useState(false)
   const [showReplies, setShowReplies] = useState(true)
   const [replyText, setReplyText] = useState('')
@@ -394,6 +394,7 @@ const ReviewItem = ({ review, currentUser, onDelete, onReply, isReplySubmitting 
 
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -585,6 +586,8 @@ const ReviewItem = ({ review, currentUser, onDelete, onReply, isReplySubmitting 
       </div>
     </motion.div>
   )
-}
+})
+
+ReviewItem.displayName = 'ReviewItem'
 
 export default ProductReviews

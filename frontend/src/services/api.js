@@ -160,7 +160,11 @@ export const ordersAPI = {
     getOrder: (id) => api.get(`/orders/${id}`).then(res => res.data),
     createOrder: (orderData) => api.post('/orders', orderData).then(res => res.data),
     cancelOrder: (id) => api.post(`/orders/${id}/cancel`).then(res => res.data),
-    processPayment: (orderId, paymentData) => api.post(`/orders/${orderId}/payment`, paymentData).then(res => res.data),
+}
+
+// Payments API
+export const paymentsAPI = {
+    createPayment: (paymentData) => api.post('/payments', paymentData).then(res => res.data),
 }
 
 // Wishlist API

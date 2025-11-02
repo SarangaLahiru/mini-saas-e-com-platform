@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { Package, Truck, CheckCircle2, Clock, AlertCircle, ChevronRight, ChevronLeft } from 'lucide-react'
 import { ordersAPI } from '../../../services/api'
@@ -69,19 +69,17 @@ const OrdersList = ({ orders, total, page, limit, onPageChange, onOrderClick }) 
   return (
     <>
       <div className="space-y-4">
-        <AnimatePresence mode="wait">
-          {orders.map((order, index) => {
-            const statusConfig = getStatusConfig(order.status)
-            const StatusIcon = statusConfig.icon
+        {orders.map((order, index) => {
+          const statusConfig = getStatusConfig(order.status)
+          const StatusIcon = statusConfig.icon
 
-            return (
-              <motion.div
-                key={order.resource_id || order.id || index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
+          return (
+            <motion.div
+              key={order.resource_id || order.id || index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+            >
                 <Card className="p-6 bg-white shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
                   <div className="space-y-4">
                     {/* Order Header */}
@@ -158,10 +156,9 @@ const OrdersList = ({ orders, total, page, limit, onPageChange, onOrderClick }) 
                     </div>
                   </div>
                 </Card>
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
+            </motion.div>
+          )
+        })}
       </div>
 
       {/* Pagination */}

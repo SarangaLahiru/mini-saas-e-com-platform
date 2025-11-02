@@ -12,12 +12,14 @@ import (
 )
 
 type OrderHandler struct {
-	orderUsecase usecase.OrderUsecase
+	orderUsecase   usecase.OrderUsecase
+	productUsecase usecase.ProductUsecase
 }
 
-func NewOrderHandler(orderUsecase usecase.OrderUsecase) *OrderHandler {
+func NewOrderHandler(orderUsecase usecase.OrderUsecase, productUsecase usecase.ProductUsecase) *OrderHandler {
 	return &OrderHandler{
-		orderUsecase: orderUsecase,
+		orderUsecase:   orderUsecase,
+		productUsecase: productUsecase,
 	}
 }
 
@@ -254,18 +256,66 @@ func (h *OrderHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// Create order (simplified implementation)
+	// Validate and fetch products for order items
+	orderItems := make([]models.OrderItem, 0, len(req.Items))
+	for _, itemReq := range req.Items {
+		// Get product by resource ID
+		product, err := h.productUsecase.GetByResourceID(c.Request.Context(), itemReq.ProductResourceID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Error:   "Invalid product",
+				Message: "Product not found: " + itemReq.ProductResourceID,
+			})
+			return
+		}
+		if product == nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+				Error:   "Invalid product",
+				Message: "Product not found: " + itemReq.ProductResourceID,
+			})
+			return
+		}
+
+		// Create order item
+		orderItem := models.OrderItem{
+			ProductID: product.ID,
+			Quantity:  itemReq.Quantity,
+			Price:     itemReq.Price,
+			Total:     itemReq.Price * float64(itemReq.Quantity),
+		}
+
+		// Handle variant if provided
+		if itemReq.VariantResourceID != nil && *itemReq.VariantResourceID != "" {
+			// Find variant in product by resource_id
+			var variant *models.Variant
+			for i := range product.Variants {
+				if product.Variants[i].ResourceID == *itemReq.VariantResourceID {
+					variant = &product.Variants[i]
+					break
+				}
+			}
+			if variant != nil {
+				variantID := variant.ID
+				orderItem.VariantID = &variantID
+			}
+		}
+
+		orderItems = append(orderItems, orderItem)
+	}
+
+	// Create order with items
 	order := &models.Order{
-		UserID:        userID.(uint),
-		Status:        "pending",
-		PaymentStatus: "pending",
-		Subtotal:      req.Subtotal,
-		TaxAmount:     req.TaxAmount,
-		ShippingCost:  req.ShippingCost,
+		UserID:         userID.(uint),
+		Status:         "pending",
+		PaymentStatus:  "pending",
+		Subtotal:       req.Subtotal,
+		TaxAmount:      req.TaxAmount,
+		ShippingCost:   req.ShippingCost,
 		DiscountAmount: req.DiscountAmount,
-		Total:         req.Total,
-		Currency:      req.Currency,
-		Notes:         req.Notes,
+		Total:          req.Total,
+		Currency:       req.Currency,
+		Notes:          req.Notes,
+		OrderItems:     orderItems,
 	}
 
 	err := h.orderUsecase.Create(c.Request.Context(), order)
@@ -285,13 +335,14 @@ func (h *OrderHandler) Create(c *gin.Context) {
 		PaymentStatus:  order.PaymentStatus,
 		Subtotal:       order.Subtotal,
 		TaxAmount:      order.TaxAmount,
-		ShippingCost:   order.ShippingCost,
+		ShippingCost: order.ShippingCost,
 		DiscountAmount: order.DiscountAmount,
 		Total:          order.Total,
 		Currency:       order.Currency,
 		Notes:          order.Notes,
 		CreatedAt:      order.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:      order.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+		ItemCount:      len(order.OrderItems),
 	})
 }
 

@@ -85,12 +85,17 @@ func (s *Server) setupRoutes() {
     categoryUsecase := usecase.NewCategoryUsecase(categoryRepo, productUsecase)
 	orderUsecase := usecase.NewOrderUsecase(orderRepo)
 	reviewUsecase := usecase.NewReviewUsecase(reviewRepo)
+	
+	// Initialize payment repository and usecase
+	paymentRepo := repository.NewPaymentRepository(s.db.DB)
+	paymentUsecase := usecase.NewPaymentUsecase(paymentRepo, orderRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authUsecase, otpService)
     productHandler := handlers.NewProductHandler(productUsecase)
     categoryHandler := handlers.NewCategoryHandler(categoryUsecase, productUsecase)
-	orderHandler := handlers.NewOrderHandler(orderUsecase)
+	orderHandler := handlers.NewOrderHandler(orderUsecase, productUsecase)
+	paymentHandler := handlers.NewPaymentHandler(paymentUsecase)
 	cartHandler := handlers.NewCartHandler(s.db.DB)
 	wishlistHandler := handlers.NewWishlistHandler(s.db.DB)
 	reviewHandler := handlers.NewReviewHandler(reviewUsecase, productRepo)
@@ -289,6 +294,13 @@ func (s *Server) setupRoutes() {
 			orders.POST("", orderHandler.Create)
 			orders.PUT("/:id", orderHandler.Update)
 			orders.DELETE("/:id", orderHandler.Delete)
+		}
+
+		// Payment routes (Protected)
+		payments := api.Group("/payments")
+		payments.Use(middleware.AuthMiddleware(s.config.JWT.AccessTokenSecret))
+		{
+			payments.POST("", paymentHandler.CreatePayment)
 		}
 
 		// Cart routes (Protected)

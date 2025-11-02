@@ -13,7 +13,7 @@ type Order struct {
 	OrderNumber   string    `gorm:"uniqueIndex;size:20;not null" json:"order_number"`
 	UserID        uint      `gorm:"not null" json:"user_id"`
 	Status        string    `gorm:"size:20;default:pending" json:"status"`
-	PaymentStatus string    `gorm:"size:20;default:pending" json:"payment_status"`
+	PaymentStatus string    `gorm:"size:20;default:pending;column:payment_status" json:"payment_status"`
 	Subtotal      float64   `gorm:"type:decimal(10,2);not null;column:subtotal" json:"subtotal"`
 	TaxAmount     float64   `gorm:"type:decimal(10,2);default:0;column:tax_amount" json:"tax_amount"`
 	ShippingCost  float64   `gorm:"type:decimal(10,2);default:0;column:shipping_amount" json:"shipping_cost"`
@@ -39,8 +39,8 @@ type OrderItem struct {
 	ProductID  uint    `gorm:"not null" json:"product_id"`
 	VariantID  *uint   `gorm:"index" json:"variant_id"`
 	Quantity   int     `gorm:"not null" json:"quantity"`
-	Price      float64 `gorm:"type:decimal(10,2);not null" json:"price"`
-	Total      float64 `gorm:"type:decimal(10,2);not null" json:"total"`
+	Price      float64 `gorm:"type:decimal(10,2);not null;column:unit_price" json:"price"`
+	Total      float64 `gorm:"type:decimal(10,2);not null;column:total_price" json:"total"`
 	CreatedAt  time.Time `json:"created_at"`
 
 	// Relationships

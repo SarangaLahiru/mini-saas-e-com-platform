@@ -104,7 +104,7 @@ func (h *AdminUsersHandler) ListUsers(c *gin.Context) {
 		}
 
 		// Get user order count and total spent
-		userOrders, _ := h.orderRepo.List(ctx, user.ID, 1000, 0) // Get all orders for this user
+		userOrders, _ := h.orderRepo.List(ctx, user.ID, 1000, 0, map[string]interface{}{}) // Get all orders for this user
 		var totalSpent float64
 		var ordersCount int64
 		for _, order := range userOrders {
@@ -223,7 +223,7 @@ func (h *AdminUsersHandler) UpdateUser(c *gin.Context) {
 	}
 
 	// Get user stats
-	userOrders, _ := h.orderRepo.List(ctx, updatedUser.ID, 1000, 0)
+	userOrders, _ := h.orderRepo.List(ctx, updatedUser.ID, 1000, 0, map[string]interface{}{})
 	var totalSpent float64
 	var ordersCount int64
 	for _, order := range userOrders {
@@ -287,7 +287,7 @@ func (h *AdminUsersHandler) GetUser(c *gin.Context) {
 	}
 
 	// Get all orders for this user
-	orders, err := h.orderRepo.List(ctx, user.ID, 1000, 0)
+	orders, err := h.orderRepo.List(ctx, user.ID, 1000, 0, map[string]interface{}{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
 			Error:   "Failed to get orders",

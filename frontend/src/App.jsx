@@ -7,6 +7,7 @@ import EnhancedHeader from './components/layout/EnhancedHeader'
 import Footer from './components/layout/Footer'
 import Sidebar from './components/layout/Sidebar'
 import AdminLayout from './components/layout/AdminLayout'
+import OnlineStatusBanner from './components/online/OnlineStatusBanner'
 import PageSkeleton from './components/ui/PageSkeleton'
 import SkeletonHeader from './components/ui/SkeletonHeader'
 import SkeletonList from './components/ui/SkeletonList'
@@ -20,9 +21,11 @@ const Products = React.lazy(() => import('./pages/Products'))
 const ProductDetail = React.lazy(() => import('./pages/ProductDetail'))
 const Category = React.lazy(() => import('./pages/Category'))
 const Cart = React.lazy(() => import('./pages/Cart'))
+const Wishlist = React.lazy(() => import('./pages/Wishlist'))
 const Checkout = React.lazy(() => import('./pages/Checkout'))
 const Profile = React.lazy(() => import('./pages/Profile'))
 const Orders = React.lazy(() => import('./pages/Orders'))
+const OrderDetail = React.lazy(() => import('./pages/OrderDetail'))
 const Login = React.lazy(() => import('./pages/Auth/Login'))
 const Register = React.lazy(() => import('./pages/Auth/Register'))
 const AdminDashboard = React.lazy(() => import('./pages/Admin/Dashboard'))
@@ -133,6 +136,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Online/Offline Status Banner */}
+      <OnlineStatusBanner />
+      
       {!isAdminRoute && <EnhancedHeader />}
       
       <main className="min-h-screen">
@@ -254,6 +260,22 @@ function AppContent() {
               } 
             />
             <Route 
+              path="/wishlist" 
+              element={
+                <Suspense fallback={<PageSkeleton.ProductsList />}>
+                  <motion.div
+                    initial="initial"
+                    animate="in"
+                    exit="out"
+                    variants={pageVariants}
+                    transition={pageTransition}
+                  >
+                    <Wishlist />
+                  </motion.div>
+                </Suspense>
+              } 
+            />
+            <Route 
               path="/auth/login" 
               element={
                 <Suspense fallback={<AuthSkeleton type="login" />}>
@@ -363,6 +385,24 @@ function AppContent() {
                       transition={pageTransition}
                     >
                       <Orders />
+                    </motion.div>
+                  </Suspense>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orders/:id" 
+              element={
+                <ProtectedRoute requireAuth={true}>
+                  <Suspense fallback={<PageSkeleton.Profile />}>
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <OrderDetail />
                     </motion.div>
                   </Suspense>
                 </ProtectedRoute>

@@ -234,21 +234,21 @@ const CartDrawer = ({ isOpen, onClose }) => {
             </div>
 
             {items.length > 0 && (
-              <div className="border-t border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-lg font-semibold text-gray-900">Total</span>
-                  <span className="text-lg font-semibold text-gray-900">{formatPrice(total)}</span>
+              <div className="border-t border-gray-200 p-6 bg-gradient-to-br from-gray-50 to-blue-50/30">
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                  <span className="text-lg font-bold text-gray-900">Total</span>
+                  <span className="text-2xl font-bold text-blue-600">{formatPrice(total)}</span>
                 </div>
                 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Link to="/checkout" onClick={onClose}>
-                    <Button className="w-full" size="lg">
+                    <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all" size="lg">
                       Proceed to Checkout
                     </Button>
                   </Link>
                   <Link to="/cart" onClick={onClose}>
-                    <Button variant="outline" className="w-full">
-                      View Cart
+                    <Button variant="outline" className="w-full border-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 font-medium transition-all" size="md">
+                      View Full Cart
                     </Button>
                   </Link>
                 </div>

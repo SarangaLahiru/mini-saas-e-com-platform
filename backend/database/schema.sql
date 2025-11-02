@@ -259,6 +259,7 @@ CREATE TABLE orders (
     user_id INT UNSIGNED NOT NULL,
     order_number VARCHAR(50) NOT NULL UNIQUE,
     status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded') DEFAULT 'pending',
+    payment_status ENUM('pending', 'processing', 'paid', 'failed', 'refunded') DEFAULT 'pending',
     subtotal DECIMAL(10,2) NOT NULL,
     tax_amount DECIMAL(10,2) DEFAULT 0,
     shipping_amount DECIMAL(10,2) DEFAULT 0,
@@ -268,6 +269,8 @@ CREATE TABLE orders (
     notes TEXT,
     shipping_address JSON,
     billing_address JSON,
+    shipped_at TIMESTAMP NULL,
+    delivered_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
@@ -276,6 +279,7 @@ CREATE TABLE orders (
     INDEX idx_orders_user_id (user_id),
     INDEX idx_orders_order_number (order_number),
     INDEX idx_orders_status (status),
+    INDEX idx_orders_payment_status (payment_status),
     INDEX idx_orders_created_at (created_at)
 );
 

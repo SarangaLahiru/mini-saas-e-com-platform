@@ -81,9 +81,10 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 		
 		if item.Variant != nil {
 			respItem["variant"] = map[string]interface{}{
-				"id":    item.Variant.ID,
-				"name":  item.Variant.Name,
-				"price": item.Variant.Price,
+				"id":          item.Variant.ID,
+				"resource_id": item.Variant.ResourceID,
+				"name":        item.Variant.Name,
+				"price":       item.Variant.Price,
 			}
 		}
 		

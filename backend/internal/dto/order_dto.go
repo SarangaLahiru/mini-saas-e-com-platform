@@ -7,14 +7,24 @@ import (
 
 // Order DTOs
 
+type CreateOrderItemRequest struct {
+	ProductResourceID string  `json:"product_resource_id" binding:"required"`
+	VariantResourceID  *string `json:"variant_resource_id,omitempty"`
+	Quantity           int     `json:"quantity" binding:"required,min=1"`
+	Price              float64 `json:"price" binding:"required,min=0"`
+}
+
 type CreateOrderRequest struct {
-	Subtotal       float64 `json:"subtotal" binding:"required,min=0"`
-	TaxAmount      float64 `json:"tax_amount" binding:"min=0"`
-	ShippingCost   float64 `json:"shipping_cost" binding:"min=0"`
-	DiscountAmount float64 `json:"discount_amount" binding:"min=0"`
-	Total          float64 `json:"total" binding:"required,min=0"`
-	Currency       string  `json:"currency" binding:"required,len=3"`
-	Notes          string  `json:"notes" binding:"omitempty,max=500"`
+	Subtotal       float64                `json:"subtotal" binding:"required,min=0"`
+	TaxAmount      float64                `json:"tax_amount" binding:"min=0"`
+	ShippingCost   float64                `json:"shipping_cost" binding:"min=0"`
+	DiscountAmount float64                `json:"discount_amount" binding:"min=0"`
+	Total          float64                `json:"total" binding:"required,min=0"`
+	Currency       string                 `json:"currency" binding:"required,len=3"`
+	Notes          string                 `json:"notes" binding:"omitempty,max=500"`
+	Items          []CreateOrderItemRequest `json:"items" binding:"required,min=1,dive"`
+	ShippingAddressResourceID string      `json:"shipping_address_resource_id" binding:"omitempty"`
+	BillingAddressResourceID  string      `json:"billing_address_resource_id" binding:"omitempty"`
 }
 
 func (c *CreateOrderRequest) Validate() error {

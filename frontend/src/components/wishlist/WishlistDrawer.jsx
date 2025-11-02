@@ -122,9 +122,17 @@ const WishlistDrawer = ({ isOpen, onClose }) => {
             </div>
 
             {items.length > 0 && (
-              <div className="border-t border-gray-200 p-6">
+              <div className="border-t border-gray-200 p-6 bg-gradient-to-br from-gray-50 to-pink-50/30">
+                <div className="mb-4 pb-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-600">Total Items</span>
+                    <span className="text-lg font-bold text-pink-600">{items.length}</span>
+                  </div>
+                </div>
                 <Link to="/wishlist" onClick={onClose}>
-                  <Button variant="outline" className="w-full">View Wishlist</Button>
+                  <Button variant="outline" className="w-full border-2 border-gray-300 hover:border-pink-500 hover:text-pink-600 font-medium transition-all">
+                    View Full Wishlist
+                  </Button>
                 </Link>
               </div>
             )}
