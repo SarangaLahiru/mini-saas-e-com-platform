@@ -11,6 +11,7 @@ import (
 type CategoryUsecase interface {
     ListForHome(ctx context.Context, limit int) ([]dto.CategoryListItem, error)
     GetBySlug(ctx context.Context, slug string, page, limit int) ([]*models.Product, int64, error)
+    GetCategoryBySlug(ctx context.Context, slug string) (*models.Category, error)
 }
 
 type categoryUsecase struct {
@@ -51,6 +52,10 @@ func (u *categoryUsecase) GetBySlug(ctx context.Context, slug string, page, limi
         return nil, 0, err
     }
     return products, total, nil
+}
+
+func (u *categoryUsecase) GetCategoryBySlug(ctx context.Context, slug string) (*models.Category, error) {
+    return u.catRepo.GetBySlug(ctx, slug)
 }
 
 

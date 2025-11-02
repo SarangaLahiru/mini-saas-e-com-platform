@@ -329,6 +329,7 @@ type Pagination struct {
 
 // Category page response by slug
 type CategoryPageResponse struct {
+    Category   *CategoryResponse `json:"category,omitempty"`
     Products   []ProductResponse `json:"products"`
     Pagination Pagination        `json:"pagination"`
 }

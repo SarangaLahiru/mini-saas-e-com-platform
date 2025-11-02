@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { productsAPI } from '../../../services/api'
 import { useCart } from '../../../contexts/CartContext'
 import { useWishlist } from '../../../contexts/WishlistContext'
@@ -18,7 +17,6 @@ import {
   XCircleIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
-import Card from '../../../components/ui/Card'
 import Button from '../../../components/ui/Button'
 import Badge from '../../../components/ui/Badge'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner'
@@ -47,21 +45,19 @@ const ProductInfo = ({ productId }) => {
 
   if (isLoading) {
     return (
-      <Card className="p-6">
+      <div className="flex items-center justify-center py-12">
         <LoadingSpinner />
-      </Card>
+      </div>
     )
   }
 
   if (!product) {
     return (
-      <Card className="p-6">
-        <div className="text-center py-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Product not found</h2>
-          <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/products')}>Browse Products</Button>
-        </div>
-      </Card>
+      <div className="text-center py-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Product not found</h2>
+        <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
+        <Button onClick={() => navigate('/products')}>Browse Products</Button>
+      </div>
     )
   }
 
@@ -121,8 +117,7 @@ const ProductInfo = ({ productId }) => {
   }
 
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center text-sm text-gray-500 space-x-2">
           <button onClick={() => navigate('/')} className="hover:text-gray-700">Home</button>
@@ -149,11 +144,9 @@ const ProductInfo = ({ productId }) => {
             </h1>
             
             {/* Wishlist Button */}
-            <motion.button
+            <button
               onClick={handleWishlistToggle}
               disabled={isWishlistLoading}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
               className="p-3 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
               title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
             >
@@ -162,7 +155,7 @@ const ProductInfo = ({ productId }) => {
               ) : (
                 <HeartIcon className="w-7 h-7 text-gray-600" />
               )}
-            </motion.button>
+            </button>
           </div>
 
           {/* Badges */}
@@ -378,7 +371,6 @@ const ProductInfo = ({ productId }) => {
           </div>
         </div>
       </div>
-    </Card>
   )
 }
 

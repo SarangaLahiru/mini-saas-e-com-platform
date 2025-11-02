@@ -222,6 +222,22 @@ function AppContent() {
               } 
             />
             <Route 
+              path="/categories/:slug" 
+              element={
+                <Suspense fallback={<PageSkeleton.ProductsList />}>
+                  <motion.div
+                    initial="initial"
+                    animate="in"
+                    exit="out"
+                    variants={pageVariants}
+                    transition={pageTransition}
+                  >
+                    <Category />
+                  </motion.div>
+                </Suspense>
+              } 
+            />
+            <Route 
               path="/cart" 
               element={
                 <Suspense fallback={<PageSkeleton.Cart />}>

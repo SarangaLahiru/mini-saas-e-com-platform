@@ -123,6 +123,7 @@ export const productsAPI = {
     getCategories: (params) => api.get('/categories', { params }).then(res => res.data),
     getBrands: () => api.get('/brands').then(res => res.data),
     suggest: (q, limit = 8) => api.get('/search/suggest', { params: { q, limit } }).then(res => res.data),
+    search: (q, limit = 5) => api.get('/search', { params: { q, limit } }).then(res => res.data),
     getCategory: (slug) => api.get(`/categories/${slug}`).then(res => res.data),
     searchProducts: (query, filters) => api.get('/products/search', {
         params: { q: query, ...filters }

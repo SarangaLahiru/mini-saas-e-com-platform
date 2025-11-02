@@ -42,13 +42,40 @@ func (h *CategoryHandler) GetBySlug(c *gin.Context) {
     page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
     limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
 
-    products, total, err := h.categoryUsecase.GetBySlug(c.Request.Context(), slug, page, limit)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load category", Message: err.Error()})
+    // Get category info first
+    categoryModel, err := h.categoryUsecase.GetCategoryBySlug(c.Request.Context(), slug)
+    if err != nil || categoryModel == nil {
+        c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Category not found", Message: "The requested category does not exist"})
         return
     }
+
+    // Map category to DTO
+    category := &dto.CategoryResponse{
+        ResourceID:  categoryModel.ResourceID,
+        Name:        categoryModel.Name,
+        Slug:        categoryModel.Slug,
+        Description: categoryModel.Description,
+        Image:       categoryModel.Image,
+        ParentID:    categoryModel.ParentID,
+        SortOrder:   categoryModel.SortOrder,
+        IsActive:    categoryModel.IsActive,
+        CreatedAt:   categoryModel.CreatedAt,
+        UpdatedAt:   categoryModel.UpdatedAt,
+    }
+
+    products, total, err := h.categoryUsecase.GetBySlug(c.Request.Context(), slug, page, limit)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load category products", Message: err.Error()})
+        return
+    }
+    
     if total == 0 {
-        c.JSON(http.StatusOK, dto.CategoryPageResponse{Products: []dto.ProductResponse{}, Pagination: dto.Pagination{Page: page, Limit: limit, Total: 0, TotalPages: 0}})
+        totalPages := 0
+        c.JSON(http.StatusOK, dto.CategoryPageResponse{
+            Category: category,
+            Products: []dto.ProductResponse{},
+            Pagination: dto.Pagination{Page: page, Limit: limit, Total: 0, TotalPages: totalPages},
+        })
         return
     }
 
@@ -110,6 +137,7 @@ func (h *CategoryHandler) GetBySlug(c *gin.Context) {
 
     totalPages := (int(total) + limit - 1) / limit
     c.JSON(http.StatusOK, dto.CategoryPageResponse{
+        Category: category,
         Products: out,
         Pagination: dto.Pagination{
             Page:       page,

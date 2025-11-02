@@ -95,6 +95,10 @@ func (s *Server) setupRoutes() {
 	wishlistHandler := handlers.NewWishlistHandler(s.db.DB)
 	reviewHandler := handlers.NewReviewHandler(reviewUsecase, productRepo)
 	
+	// Initialize search handler
+	brandRepo := repository.NewBrandRepository(s.db.DB)
+	searchHandler := handlers.NewSearchHandler(productRepo, categoryRepo, brandRepo, s.db.DB)
+	
 	// Initialize upload handler
 	uploadDir := "./uploads"
 	baseURL := fmt.Sprintf("http://%s:%s", s.config.Server.Host, s.config.Server.Port)
@@ -152,6 +156,9 @@ func (s *Server) setupRoutes() {
 		// Brands routes (public)
 		api.GET("/brands", productHandler.GetBrands)
 		api.GET("/search/suggest", productHandler.SuggestProducts)
+		
+		// Comprehensive search (public)
+		api.GET("/search", searchHandler.Search)
 
 		// Review routes
 		reviews := api.Group("/reviews")

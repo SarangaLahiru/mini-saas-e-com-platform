@@ -9,11 +9,11 @@ import {
   XMarkIcon,
   MagnifyingGlassPlusIcon 
 } from '@heroicons/react/24/outline'
-import Card from '../../../components/ui/Card'
 
 const ProductImages = ({ productId }) => {
   const [selectedImage, setSelectedImage] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
   const [imageLoadErrors, setImageLoadErrors] = useState(new Set())
   
   const { data: product, isLoading } = useQuery({
@@ -61,44 +61,99 @@ const ProductImages = ({ productId }) => {
 
   React.useEffect(() => {
     if (isLightboxOpen) {
+      // Save current scroll position immediately
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+      const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft
+      
+      // Force immediate scroll to top
+      window.scrollTo(0, 0)
+      document.documentElement.scrollTop = 0
+      document.documentElement.scrollLeft = 0
+      document.body.scrollTop = 0
+      document.body.scrollLeft = 0
+      
+      // Use requestAnimationFrame to ensure scroll completes
+      requestAnimationFrame(() => {
+        // Prevent body scroll and lock position
+        document.body.style.overflow = 'hidden'
+        document.body.style.position = 'fixed'
+        document.body.style.top = `-${scrollY}px`
+        document.body.style.left = `-${scrollX}px`
+        document.body.style.width = '100%'
+        document.body.style.height = '100%'
+        
+        // Also lock html element
+        document.documentElement.style.overflow = 'hidden'
+        document.documentElement.style.position = 'fixed'
+        document.documentElement.style.top = `-${scrollY}px`
+        document.documentElement.style.left = `-${scrollX}px`
+        document.documentElement.style.width = '100%'
+        document.documentElement.style.height = '100%'
+        
+        // Force scroll to top again after locking
+        window.scrollTo(0, 0)
+      })
+      
       document.addEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = 'unset'
+      
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+        
+        // Restore scroll position
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.left = ''
+        document.body.style.width = ''
+        document.body.style.height = ''
+        
+        document.documentElement.style.overflow = ''
+        document.documentElement.style.position = ''
+        document.documentElement.style.top = ''
+        document.documentElement.style.left = ''
+        document.documentElement.style.width = ''
+        document.documentElement.style.height = ''
+        
+        // Restore scroll position after a brief delay
+        requestAnimationFrame(() => {
+          window.scrollTo(scrollX, scrollY)
+        })
+      }
     }
   }, [isLightboxOpen, selectedImage])
 
   if (isLoading) {
     return (
-      <Card className="p-4 lg:p-6">
-        <div className="space-y-4">
-          {/* Main image skeleton */}
-          <div className="aspect-square bg-gray-200 rounded-xl animate-pulse" />
-          {/* Thumbnails skeleton */}
-          <div className="grid grid-cols-4 gap-2 lg:gap-3">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse" />
-            ))}
-          </div>
+      <div className="space-y-4">
+        {/* Main image skeleton */}
+        <div className="w-full h-[400px] sm:h-[500px] lg:h-[600px] bg-gray-200 rounded-xl animate-pulse" />
+        {/* Thumbnails skeleton */}
+        <div className="grid grid-cols-4 gap-2 lg:gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse" />
+          ))}
         </div>
-      </Card>
+      </div>
     )
   }
 
   return (
     <>
-      <Card className="p-4 lg:p-6 lg:sticky lg:top-24 h-fit">
-        <div className="space-y-3 lg:space-y-4">
+      <div className="space-y-3 lg:space-y-4">
           {/* Main Image Container - Fixed Height Standard */}
           <motion.div 
             className="relative w-full h-[400px] sm:h-[500px] lg:h-[600px] bg-gray-50 rounded-xl overflow-hidden group cursor-zoom-in border border-gray-200"
-            onClick={() => setIsLightboxOpen(true)}
-            whileHover={{ scale: 1.01 }}
-            transition={{ duration: 0.2 }}
+            onClick={() => {
+              // First scroll to top, then open lightbox
+              setIsScrolling(true)
+              window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+              
+              // Wait for scroll to complete, then open lightbox
+              setTimeout(() => {
+                setIsScrolling(false)
+                setIsLightboxOpen(true)
+              }, 500) // Wait for smooth scroll to complete
+            }}
           >
             {/* Image with consistent sizing */}
             <img
@@ -124,7 +179,7 @@ const ProductImages = ({ productId }) => {
                     e.stopPropagation()
                     handlePrevImage()
                   }}
-                  className="hidden lg:flex absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/95 hover:bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95"
+                  className="hidden lg:flex absolute left-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/95 hover:bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all"
                   aria-label="Previous image"
                 >
                   <ChevronLeftIcon className="w-5 h-5 text-gray-800" />
@@ -134,7 +189,7 @@ const ProductImages = ({ productId }) => {
                     e.stopPropagation()
                     handleNextImage()
                   }}
-                  className="hidden lg:flex absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/95 hover:bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95"
+                  className="hidden lg:flex absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-white/95 hover:bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all"
                   aria-label="Next image"
                 >
                   <ChevronRightIcon className="w-5 h-5 text-gray-800" />
@@ -169,9 +224,6 @@ const ProductImages = ({ productId }) => {
                       ? 'border-blue-500 ring-2 ring-blue-200 shadow-md'
                       : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                   }`}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.15 }}
                   aria-label={`View image ${index + 1}`}
                 >
                   {/* Thumbnail Image - Consistent Sizing */}
@@ -213,7 +265,6 @@ const ProductImages = ({ productId }) => {
             </p>
           )}
         </div>
-      </Card>
 
       {/* Lightbox Modal */}
       <AnimatePresence>
@@ -222,48 +273,100 @@ const ProductImages = ({ productId }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-2 lg:p-4"
+            className="fixed z-[9999] bg-black"
             onClick={() => setIsLightboxOpen(false)}
+            style={{ 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              position: 'fixed',
+              overflow: 'hidden',
+              margin: 0,
+              padding: 0,
+              height: '100vh',
+              width: '100vw',
+              transform: 'translate(0, 0)',
+              zIndex: 9999
+            }}
           >
             {/* Close Button */}
             <motion.button
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
               transition={{ delay: 0.1 }}
-              onClick={() => setIsLightboxOpen(false)}
-              className="absolute top-3 right-3 lg:top-6 lg:right-6 p-2 lg:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors backdrop-blur-sm z-10"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsLightboxOpen(false)
+              }}
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 p-2 sm:p-3 bg-white/10 hover:bg-white/20 rounded-full transition-all backdrop-blur-sm cursor-pointer touch-manipulation"
               aria-label="Close"
             >
-              <XMarkIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+              <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </motion.button>
 
             {/* Image Counter Badge */}
-            <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.15 }}
-              className="absolute top-3 left-1/2 -translate-x-1/2 lg:top-6 px-4 py-2 lg:px-6 lg:py-3 bg-white/10 text-white text-sm lg:text-lg rounded-full font-medium backdrop-blur-sm"
-            >
-              {selectedImage + 1} / {displayImages.length}
-            </motion.div>
+            {displayImages.length > 1 && (
+              <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                transition={{ delay: 0.15 }}
+                className="absolute top-3 sm:top-4 left-1/2 -translate-x-1/2 z-30 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 text-white text-xs sm:text-sm rounded-full font-medium backdrop-blur-sm pointer-events-none"
+              >
+                {selectedImage + 1} / {displayImages.length}
+              </motion.div>
+            )}
 
-            {/* Main Image Container */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="relative w-full h-full max-w-6xl max-h-[85vh] flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
+            {/* Main Image Container - Centered */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              style={{
+                height: '100vh',
+                width: '100vw',
+                margin: 0,
+                padding: 0
+              }}
             >
-              {/* Lightbox Image - Consistent Sizing */}
-              <img
-                src={getImageUrl(currentImage)}
-                alt={currentImage?.alt || `Product image ${selectedImage + 1}`}
-                className="max-w-full max-h-full object-contain rounded-lg"
-                onError={() => handleImageError(currentImage?.url)}
-              />
-            </motion.div>
+              {currentImage && !imageLoadErrors.has(currentImage?.url) ? (
+                <motion.img
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  src={getImageUrl(currentImage)}
+                  alt={currentImage?.alt || `Product image ${selectedImage + 1}`}
+                  className="object-contain select-none pointer-events-auto"
+                  style={{ 
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: '95vw',
+                    maxHeight: '75vh',
+                    margin: 0
+                  }}
+                  onError={() => handleImageError(currentImage?.url)}
+                  draggable={false}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center text-gray-400 pointer-events-none"
+                  style={{
+                    width: '90vw',
+                    height: '75vh',
+                    maxWidth: '600px'
+                  }}
+                >
+                  <div className="text-6xl mb-4">📷</div>
+                  <p className="text-lg font-medium">No Image Available</p>
+                  <p className="text-sm mt-2">This image could not be loaded</p>
+                </motion.div>
+              )}
+            </div>
 
             {/* Navigation Arrows - Larger for Lightbox */}
             {displayImages.length > 1 && (
@@ -271,28 +374,30 @@ const ProductImages = ({ productId }) => {
                 <motion.button
                   initial={{ x: -20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: -20, opacity: 0 }}
                   transition={{ delay: 0.2 }}
                   onClick={(e) => {
                     e.stopPropagation()
                     handlePrevImage()
                   }}
-                  className="absolute left-2 lg:left-6 top-1/2 -translate-y-1/2 p-3 lg:p-4 bg-white/10 hover:bg-white/20 rounded-full transition-all backdrop-blur-sm hover:scale-110 active:scale-95"
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-4 bg-white/10 hover:bg-white/20 rounded-full transition-all backdrop-blur-sm cursor-pointer touch-manipulation"
                   aria-label="Previous image"
                 >
-                  <ChevronLeftIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                  <ChevronLeftIcon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </motion.button>
                 <motion.button
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 20, opacity: 0 }}
                   transition={{ delay: 0.2 }}
                   onClick={(e) => {
                     e.stopPropagation()
                     handleNextImage()
                   }}
-                  className="absolute right-2 lg:right-6 top-1/2 -translate-y-1/2 p-3 lg:p-4 bg-white/10 hover:bg-white/20 rounded-full transition-all backdrop-blur-sm hover:scale-110 active:scale-95"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-4 bg-white/10 hover:bg-white/20 rounded-full transition-all backdrop-blur-sm cursor-pointer touch-manipulation"
                   aria-label="Next image"
                 >
-                  <ChevronRightIcon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
+                  <ChevronRightIcon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </motion.button>
               </>
             )}
@@ -302,29 +407,32 @@ const ProductImages = ({ productId }) => {
               <motion.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 20, opacity: 0 }}
                 transition={{ delay: 0.25 }}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 lg:bottom-6 flex gap-2 lg:gap-3 p-2 lg:p-3 bg-black/50 rounded-xl backdrop-blur-sm max-w-full overflow-x-auto scrollbar-hide"
+                className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-1.5 sm:gap-2 p-2 sm:p-3 bg-black/60 rounded-xl backdrop-blur-md max-w-[95vw] sm:max-w-[90vw] overflow-x-auto scrollbar-hide"
                 onClick={(e) => e.stopPropagation()}
               >
                 {displayImages.map((image, index) => (
-                  <motion.button
+                  <button
                     key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-14 h-14 lg:w-20 lg:h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedImage(index)
+                    }}
+                    className={`flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all cursor-pointer touch-manipulation ${
                       selectedImage === index
-                        ? 'border-white ring-2 ring-white/50 shadow-lg scale-110'
+                        ? 'border-white ring-2 ring-white/50 shadow-lg'
                         : 'border-white/30 hover:border-white/60 opacity-70 hover:opacity-100'
                     }`}
-                    whileHover={{ scale: selectedImage === index ? 1.1 : 1.05 }}
-                    whileTap={{ scale: 0.95 }}
                   >
                     <img
                       src={getImageUrl(image)}
                       alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-contain bg-white/10 p-1"
+                      className="w-full h-full object-contain bg-white/10 p-0.5 sm:p-1"
                       onError={() => handleImageError(image?.url)}
+                      draggable={false}
                     />
-                  </motion.button>
+                  </button>
                 ))}
               </motion.div>
             )}
@@ -333,10 +441,11 @@ const ProductImages = ({ productId }) => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ delay: 0.5 }}
-              className="hidden lg:block absolute bottom-6 right-6 text-white/60 text-sm"
+              className="hidden lg:block absolute bottom-20 right-4 z-30 px-4 py-2 bg-white/10 text-white/80 text-xs rounded-full backdrop-blur-sm pointer-events-none"
             >
-              Use ← → arrow keys or ESC
+              Use ← → arrow keys or ESC to close
             </motion.div>
           </motion.div>
         )}
